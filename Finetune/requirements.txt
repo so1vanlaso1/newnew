@@ -1,0 +1,43 @@
+# EXACT 2026 — Finetune (Qwen/Qwen3.5-4B-Base + LoRA) requirements.
+#
+# Target GPU: RTX 5070, 12 GB, Blackwell (sm_120). PyTorch needs CUDA 12.8
+# wheels — pinned via the cu128 index in setup.sh. On an older driver, re-run
+# setup.sh with CUDA_WHL=cu126 (or cu121); the same file works, you just lose
+# some Blackwell-specific kernels.
+
+# Core. transformers>=4.57 is REQUIRED: Qwen3.5 ("qwen3_5") is a new
+# architecture older transformers can't load. If model loading fails with
+# "Unrecognized model type ... qwen3_5", install transformers from source:
+#   pip install -U "git+https://github.com/huggingface/transformers"
+torch>=2.7
+transformers>=4.57
+accelerate>=1.1
+huggingface_hub>=0.26          # snapshot_download used by setup.sh
+
+# LoRA / SFT
+peft>=0.13
+trl>=0.12
+datasets>=3.1
+
+# 4-bit (QLoRA) base quantization for training; 8-bit Adam optim also lives here.
+bitsandbytes>=0.44
+
+# Flash Attention 2 — strongly recommended for training a 4B model. Installed
+# separately in setup.sh because the wheel needs a CUDA-matched build.
+# flash-attn>=2.6
+
+# Project deps (these also cover the transformers-based inference path).
+pydantic>=2.6
+typer>=0.12
+rich>=13.7
+tqdm>=4.66
+
+# --- Inference on this same box (optional) -------------------------------
+# Uncomment to also run the full neuro-symbolic pipeline (Z3 solve + vote +
+# CoT) here, e.g. `python run_pipeline.py --backend hf --precision 4bit`.
+# z3-solver>=4.13
+# pyyaml>=6.0
+# numpy>=1.26
+
+# Tests (optional)
+pytest>=8.0

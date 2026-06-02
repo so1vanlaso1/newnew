@@ -1,0 +1,572 @@
+================================================================================
+TRANSLATOR-ONLY EVALUATION  (NL -> FOL / Z3 program; no solver)
+model        : C:\Users\hi\New folder (2)\models\Qwen3.5-4B
+lora         : C:\Users\hi\New folder (2)\Finetune\Artifact\artifacts\artifacts\translator-lora
+k_samples    : 1    n_fewshot: 2    max_new_tokens: 4000    temp: 0.3
+mode         : NO-THINK (direct answer)
+rows         : 1 from Logic_Based_Educational_Queries.json
+================================================================================
+
+################################################################################
+RECORD 1/1   id=1-2-4-5-7-8-9-10-11-1-2-4-5-7-8-9-10-11_q0   type=MCQ
+################################################################################
+PREMISES (NL):
+  [0] Students who have completed the core curriculum and passed the science assessment are qualified for advanced courses.
+  [1] Students who are qualified for advanced courses and have completed research methodology are eligible for the international program.
+  [2] Students who have passed the language proficiency exam are eligible for the international program.
+  [3] Students who are eligible for the international program and have completed a capstone project are awarded an honors diploma.
+  [4] Students who have been awarded an honors diploma and have completed community service qualify for the university scholarship.
+  [5] Students who have been awarded an honors diploma and have received a faculty recommendation qualify for the university scholarship.
+  [6] Sophia has completed the core curriculum.
+  [7] Sophia has passed the science assessment.
+  [8] Sophia has completed the research methodology course.
+  [9] Sophia has completed her capstone project.
+  [10] Sophia has completed the required community service hours.
+QUESTION (NL):
+  Based on the above premises, which is the strongest conclusion?
+OPTIONS:
+  A. Sophia qualifies for the university scholarship
+  B. Sophia needs a faculty recommendation to qualify for the scholarship
+  C. Sophia is eligible for the international program
+  D. Sophia needs to pass the language proficiency exam to get an honors diploma
+
+--------------------------------------------------------------------------------
+PROMPT 1/4  (option A: Sophia qualifies for the university scholarship)
+--------------------------------------------------------------------------------
+  --- PROMPT INPUT TO MODEL ---
+    <|im_start|>system
+    You are a logical translator. Convert natural-language premises and a question into a Z3 Python program that the solver can execute directly.
+    
+    Rules:
+    1. Declare every sort, predicate, function, and constant you use. The universe sort is always `U = DeclareSort('U')`.
+    2. Predicates returning a truth value use `Function('P', U, ..., BoolSort())`.
+    3. Functions returning a number (used inside comparisons like `attendance(s,m) >= 80`) use `Function('f', U, ..., RealSort())`.
+    4. Constants use `Const('name', U)`; quantifier variables use `Const('x', U)` too — only their use distinguishes them.
+    5. Use `ForAll([x], body)`, `Exists([x], body)`, `Implies(a, b)`, `And(a, b, ...)`, `Or(a, b, ...)`, `Not(a)`.
+    6. Comparisons: `a == b`, `a != b`, `a >= b`, etc.
+    7. Build a Python list called `premises` containing one Z3 BoolRef per natural-language premise, in order.
+    8. Build a single `goal` (Z3 BoolRef) that captures the question.
+    9. Output exactly one block:
+       <z3py>...code...</z3py>
+       Do not output anything else. No markdown fences, no commentary.<|im_end|>
+    <|im_start|>user
+    Premises:
+    - Every student who passes all required courses with a GPA of at least 2.0 graduates.
+    - Alice passes all required courses.
+    - Alice has a GPA of 3.5.
+    Question: Does Alice graduate?<|im_end|>
+    <|im_start|>assistant
+    <z3py>
+    U = DeclareSort('U')
+    passes_required = Function('passes_required', U, BoolSort())
+    gpa = Function('gpa', U, RealSort())
+    graduates = Function('graduates', U, BoolSort())
+    alice = Const('alice', U)
+    s = Const('s', U)
+    premises = [
+        ForAll([s], Implies(And(passes_required(s), gpa(s) >= 2.0), graduates(s))),
+        passes_required(alice),
+        gpa(alice) == 3.5,
+    ]
+    goal = graduates(alice)
+    </z3py><|im_end|>
+    <|im_start|>user
+    Premises:
+    - A student is eligible for the merit scholarship only if their GPA is at least 3.6.
+    - Bob's GPA is 3.4.
+    Question: Is Bob eligible for the merit scholarship?<|im_end|>
+    <|im_start|>assistant
+    <z3py>
+    U = DeclareSort('U')
+    gpa = Function('gpa', U, RealSort())
+    merit = Function('merit', U, BoolSort())
+    bob = Const('bob', U)
+    s = Const('s', U)
+    premises = [
+        ForAll([s], Implies(merit(s), gpa(s) >= 3.6)),
+        gpa(bob) == 3.4,
+    ]
+    goal = merit(bob)
+    </z3py><|im_end|>
+    <|im_start|>user
+    Premises:
+    - Students who have completed the core curriculum and passed the science assessment are qualified for advanced courses.
+    - Students who are qualified for advanced courses and have completed research methodology are eligible for the international program.
+    - Students who have passed the language proficiency exam are eligible for the international program.
+    - Students who are eligible for the international program and have completed a capstone project are awarded an honors diploma.
+    - Students who have been awarded an honors diploma and have completed community service qualify for the university scholarship.
+    - Students who have been awarded an honors diploma and have received a faculty recommendation qualify for the university scholarship.
+    - Sophia has completed the core curriculum.
+    - Sophia has passed the science assessment.
+    - Sophia has completed the research methodology course.
+    - Sophia has completed her capstone project.
+    - Sophia has completed the required community service hours.
+    Question: Sophia qualifies for the university scholarship<|im_end|>
+    <|im_start|>assistant
+    <think>
+    
+    </think>
+    
+  SAMPLE 1/1   parse: OK   (think 0 chars, answer 1892 chars)
+  --- MODEL OUTPUT (RAW COMPLETION) ---
+    <z3py>
+    Universe = DeclareSort('Universe')
+    awarded_honors_diploma = Function('awarded_honors_diploma', Universe, BoolSort())
+    completed_capstone_project = Function('completed_capstone_project', Universe, BoolSort())
+    completed_community_service = Function('completed_community_service', Universe, BoolSort())
+    completed_core_curriculum = Function('completed_core_curriculum', Universe, BoolSort())
+    completed_research_methodology = Function('completed_research_methodology', Universe, BoolSort())
+    eligible_for_international_program = Function('eligible_for_international_program', Universe, BoolSort())
+    passed_science_assessment = Function('passed_science_assessment', Universe, BoolSort())
+    passed_language_proficiency_exam = Function('passed_language_proficiency_exam', Universe, BoolSort())
+    qualified_for_advanced_courses = Function('qualified_for_advanced_courses', Universe, BoolSort())
+    received_faculty_recommendation = Function('received_faculty_recommendation', Universe, BoolSort())
+    sophia = Const('sophia', Universe)
+    x = Const('x', Universe)
+    premises = [
+        ForAll([x], Implies(And(completed_core_curriculum(x), passed_science_assessment(x)), qualified_for_advanced_courses(x))),
+        ForAll([x], Implies(And(qualified_for_advanced_courses(x), completed_research_methodology(x)), eligible_for_international_program(x))),
+        ForAll([x], Implies(passed_language_proficiency_exam(x), eligible_for_international_program(x))),
+        ForAll([x], Implies(eligible_for_international_program(x), Implies(completed_capstone_project(x), awarded_honors_diploma(x)))),
+        ForAll([x], Implies(awarded_honors_diploma(x), Implies(And(completed_community_service(x), received_faculty_recommendation(x)), university_scholarship(x)))),
+        ForAll([x], Implies(awarded_honors_diploma(x), Implies(received_faculty_recommendation(x), university_scholarship(x))))
+    ]
+    goal = university_scholarship(sophia)
+    </z3py>
+  --- PARSED FOL / Z3 PROGRAM ---
+    Universe = DeclareSort('Universe')
+    awarded_honors_diploma = Function('awarded_honors_diploma', Universe, BoolSort())
+    completed_capstone_project = Function('completed_capstone_project', Universe, BoolSort())
+    completed_community_service = Function('completed_community_service', Universe, BoolSort())
+    completed_core_curriculum = Function('completed_core_curriculum', Universe, BoolSort())
+    completed_research_methodology = Function('completed_research_methodology', Universe, BoolSort())
+    eligible_for_international_program = Function('eligible_for_international_program', Universe, BoolSort())
+    passed_science_assessment = Function('passed_science_assessment', Universe, BoolSort())
+    passed_language_proficiency_exam = Function('passed_language_proficiency_exam', Universe, BoolSort())
+    qualified_for_advanced_courses = Function('qualified_for_advanced_courses', Universe, BoolSort())
+    received_faculty_recommendation = Function('received_faculty_recommendation', Universe, BoolSort())
+    sophia = Const('sophia', Universe)
+    x = Const('x', Universe)
+    premises = [
+        ForAll([x], Implies(And(completed_core_curriculum(x), passed_science_assessment(x)), qualified_for_advanced_courses(x))),
+        ForAll([x], Implies(And(qualified_for_advanced_courses(x), completed_research_methodology(x)), eligible_for_international_program(x))),
+        ForAll([x], Implies(passed_language_proficiency_exam(x), eligible_for_international_program(x))),
+        ForAll([x], Implies(eligible_for_international_program(x), Implies(completed_capstone_project(x), awarded_honors_diploma(x)))),
+        ForAll([x], Implies(awarded_honors_diploma(x), Implies(And(completed_community_service(x), received_faculty_recommendation(x)), university_scholarship(x)))),
+        ForAll([x], Implies(awarded_honors_diploma(x), Implies(received_faculty_recommendation(x), university_scholarship(x))))
+    ]
+    goal = university_scholarship(sophia)
+
+
+--------------------------------------------------------------------------------
+PROMPT 2/4  (option B: Sophia needs a faculty recommendation to qualify for the scholarship)
+--------------------------------------------------------------------------------
+  --- PROMPT INPUT TO MODEL ---
+    <|im_start|>system
+    You are a logical translator. Convert natural-language premises and a question into a Z3 Python program that the solver can execute directly.
+    
+    Rules:
+    1. Declare every sort, predicate, function, and constant you use. The universe sort is always `U = DeclareSort('U')`.
+    2. Predicates returning a truth value use `Function('P', U, ..., BoolSort())`.
+    3. Functions returning a number (used inside comparisons like `attendance(s,m) >= 80`) use `Function('f', U, ..., RealSort())`.
+    4. Constants use `Const('name', U)`; quantifier variables use `Const('x', U)` too — only their use distinguishes them.
+    5. Use `ForAll([x], body)`, `Exists([x], body)`, `Implies(a, b)`, `And(a, b, ...)`, `Or(a, b, ...)`, `Not(a)`.
+    6. Comparisons: `a == b`, `a != b`, `a >= b`, etc.
+    7. Build a Python list called `premises` containing one Z3 BoolRef per natural-language premise, in order.
+    8. Build a single `goal` (Z3 BoolRef) that captures the question.
+    9. Output exactly one block:
+       <z3py>...code...</z3py>
+       Do not output anything else. No markdown fences, no commentary.<|im_end|>
+    <|im_start|>user
+    Premises:
+    - Every student who passes all required courses with a GPA of at least 2.0 graduates.
+    - Alice passes all required courses.
+    - Alice has a GPA of 3.5.
+    Question: Does Alice graduate?<|im_end|>
+    <|im_start|>assistant
+    <z3py>
+    U = DeclareSort('U')
+    passes_required = Function('passes_required', U, BoolSort())
+    gpa = Function('gpa', U, RealSort())
+    graduates = Function('graduates', U, BoolSort())
+    alice = Const('alice', U)
+    s = Const('s', U)
+    premises = [
+        ForAll([s], Implies(And(passes_required(s), gpa(s) >= 2.0), graduates(s))),
+        passes_required(alice),
+        gpa(alice) == 3.5,
+    ]
+    goal = graduates(alice)
+    </z3py><|im_end|>
+    <|im_start|>user
+    Premises:
+    - A student is eligible for the merit scholarship only if their GPA is at least 3.6.
+    - Bob's GPA is 3.4.
+    Question: Is Bob eligible for the merit scholarship?<|im_end|>
+    <|im_start|>assistant
+    <z3py>
+    U = DeclareSort('U')
+    gpa = Function('gpa', U, RealSort())
+    merit = Function('merit', U, BoolSort())
+    bob = Const('bob', U)
+    s = Const('s', U)
+    premises = [
+        ForAll([s], Implies(merit(s), gpa(s) >= 3.6)),
+        gpa(bob) == 3.4,
+    ]
+    goal = merit(bob)
+    </z3py><|im_end|>
+    <|im_start|>user
+    Premises:
+    - Students who have completed the core curriculum and passed the science assessment are qualified for advanced courses.
+    - Students who are qualified for advanced courses and have completed research methodology are eligible for the international program.
+    - Students who have passed the language proficiency exam are eligible for the international program.
+    - Students who are eligible for the international program and have completed a capstone project are awarded an honors diploma.
+    - Students who have been awarded an honors diploma and have completed community service qualify for the university scholarship.
+    - Students who have been awarded an honors diploma and have received a faculty recommendation qualify for the university scholarship.
+    - Sophia has completed the core curriculum.
+    - Sophia has passed the science assessment.
+    - Sophia has completed the research methodology course.
+    - Sophia has completed her capstone project.
+    - Sophia has completed the required community service hours.
+    Question: Sophia needs a faculty recommendation to qualify for the scholarship<|im_end|>
+    <|im_start|>assistant
+    <think>
+    
+    </think>
+    
+  SAMPLE 1/1   parse: OK   (think 0 chars, answer 2093 chars)
+  --- MODEL OUTPUT (RAW COMPLETION) ---
+    <z3py>
+    Universe = DeclareSort('Universe')
+    awarded_honors_diploma = Function('awarded_honors_diploma', Universe, BoolSort())
+    completed_capstone_project = Function('completed_capstone_project', Universe, BoolSort())
+    completed_community_service = Function('completed_community_service', Universe, BoolSort())
+    completed_core_curriculum = Function('completed_core_curriculum', Universe, BoolSort())
+    completed_research_methodology = Function('completed_research_methodology', Universe, BoolSort())
+    eligible_for_international_program = Function('eligible_for_international_program', Universe, BoolSort())
+    passed_science_assessment = Function('passed_science_assessment', Universe, BoolSort())
+    passed_language_proficiency_exam = Function('passed_language_proficiency_exam', Universe, BoolSort())
+    qualified_for_advanced_courses = Function('qualified_for_advanced_courses', Universe, BoolSort())
+    received_faculty_recommendation = Function('received_faculty_recommendation', Universe, BoolSort())
+    universityscholarship = Function('universityscholarship', Universe, BoolSort())
+    Sophia = Const('Sophia', Universe)
+    x = Const('x', Universe)
+    premises = [
+        ForAll([x], Implies(And(completed_core_curriculum(x), passed_science_assessment(x)), qualified_for_advanced_courses(x))),
+        ForAll([x], Implies(And(qualified_for_advanced_courses(x), completed_research_methodology(x)), eligible_for_international_program(x))),
+        ForAll([x], Implies(passed_language_proficiency_exam(x), eligible_for_international_program(x))),
+        ForAll([x], Implies(eligible_for_international_program(x), Implies(And(completed_capstone_project(x), completed_community_service(x)), awarded_honors_diploma(x)))),
+        ForAll([x], Implies(awarded_honors_diploma(x), Implies(And(completed_capstone_project(x), completed_community_service(x)), universityscholarship(x)))),
+        ForAll([x], Implies(awarded_honors_diploma(x), Implies(received_faculty_recommendation(x), universityscholarship(x))))
+    ]
+    goal = Implies(And(awarded_honors_diploma(Sophia), completed_capstone_project(Sophia)), received_faculty_recommendation(Sophia))
+    </z3py>
+  --- PARSED FOL / Z3 PROGRAM ---
+    Universe = DeclareSort('Universe')
+    awarded_honors_diploma = Function('awarded_honors_diploma', Universe, BoolSort())
+    completed_capstone_project = Function('completed_capstone_project', Universe, BoolSort())
+    completed_community_service = Function('completed_community_service', Universe, BoolSort())
+    completed_core_curriculum = Function('completed_core_curriculum', Universe, BoolSort())
+    completed_research_methodology = Function('completed_research_methodology', Universe, BoolSort())
+    eligible_for_international_program = Function('eligible_for_international_program', Universe, BoolSort())
+    passed_science_assessment = Function('passed_science_assessment', Universe, BoolSort())
+    passed_language_proficiency_exam = Function('passed_language_proficiency_exam', Universe, BoolSort())
+    qualified_for_advanced_courses = Function('qualified_for_advanced_courses', Universe, BoolSort())
+    received_faculty_recommendation = Function('received_faculty_recommendation', Universe, BoolSort())
+    universityscholarship = Function('universityscholarship', Universe, BoolSort())
+    Sophia = Const('Sophia', Universe)
+    x = Const('x', Universe)
+    premises = [
+        ForAll([x], Implies(And(completed_core_curriculum(x), passed_science_assessment(x)), qualified_for_advanced_courses(x))),
+        ForAll([x], Implies(And(qualified_for_advanced_courses(x), completed_research_methodology(x)), eligible_for_international_program(x))),
+        ForAll([x], Implies(passed_language_proficiency_exam(x), eligible_for_international_program(x))),
+        ForAll([x], Implies(eligible_for_international_program(x), Implies(And(completed_capstone_project(x), completed_community_service(x)), awarded_honors_diploma(x)))),
+        ForAll([x], Implies(awarded_honors_diploma(x), Implies(And(completed_capstone_project(x), completed_community_service(x)), universityscholarship(x)))),
+        ForAll([x], Implies(awarded_honors_diploma(x), Implies(received_faculty_recommendation(x), universityscholarship(x))))
+    ]
+    goal = Implies(And(awarded_honors_diploma(Sophia), completed_capstone_project(Sophia)), received_faculty_recommendation(Sophia))
+
+
+--------------------------------------------------------------------------------
+PROMPT 3/4  (option C: Sophia is eligible for the international program)
+--------------------------------------------------------------------------------
+  --- PROMPT INPUT TO MODEL ---
+    <|im_start|>system
+    You are a logical translator. Convert natural-language premises and a question into a Z3 Python program that the solver can execute directly.
+    
+    Rules:
+    1. Declare every sort, predicate, function, and constant you use. The universe sort is always `U = DeclareSort('U')`.
+    2. Predicates returning a truth value use `Function('P', U, ..., BoolSort())`.
+    3. Functions returning a number (used inside comparisons like `attendance(s,m) >= 80`) use `Function('f', U, ..., RealSort())`.
+    4. Constants use `Const('name', U)`; quantifier variables use `Const('x', U)` too — only their use distinguishes them.
+    5. Use `ForAll([x], body)`, `Exists([x], body)`, `Implies(a, b)`, `And(a, b, ...)`, `Or(a, b, ...)`, `Not(a)`.
+    6. Comparisons: `a == b`, `a != b`, `a >= b`, etc.
+    7. Build a Python list called `premises` containing one Z3 BoolRef per natural-language premise, in order.
+    8. Build a single `goal` (Z3 BoolRef) that captures the question.
+    9. Output exactly one block:
+       <z3py>...code...</z3py>
+       Do not output anything else. No markdown fences, no commentary.<|im_end|>
+    <|im_start|>user
+    Premises:
+    - Every student who passes all required courses with a GPA of at least 2.0 graduates.
+    - Alice passes all required courses.
+    - Alice has a GPA of 3.5.
+    Question: Does Alice graduate?<|im_end|>
+    <|im_start|>assistant
+    <z3py>
+    U = DeclareSort('U')
+    passes_required = Function('passes_required', U, BoolSort())
+    gpa = Function('gpa', U, RealSort())
+    graduates = Function('graduates', U, BoolSort())
+    alice = Const('alice', U)
+    s = Const('s', U)
+    premises = [
+        ForAll([s], Implies(And(passes_required(s), gpa(s) >= 2.0), graduates(s))),
+        passes_required(alice),
+        gpa(alice) == 3.5,
+    ]
+    goal = graduates(alice)
+    </z3py><|im_end|>
+    <|im_start|>user
+    Premises:
+    - A student is eligible for the merit scholarship only if their GPA is at least 3.6.
+    - Bob's GPA is 3.4.
+    Question: Is Bob eligible for the merit scholarship?<|im_end|>
+    <|im_start|>assistant
+    <z3py>
+    U = DeclareSort('U')
+    gpa = Function('gpa', U, RealSort())
+    merit = Function('merit', U, BoolSort())
+    bob = Const('bob', U)
+    s = Const('s', U)
+    premises = [
+        ForAll([s], Implies(merit(s), gpa(s) >= 3.6)),
+        gpa(bob) == 3.4,
+    ]
+    goal = merit(bob)
+    </z3py><|im_end|>
+    <|im_start|>user
+    Premises:
+    - Students who have completed the core curriculum and passed the science assessment are qualified for advanced courses.
+    - Students who are qualified for advanced courses and have completed research methodology are eligible for the international program.
+    - Students who have passed the language proficiency exam are eligible for the international program.
+    - Students who are eligible for the international program and have completed a capstone project are awarded an honors diploma.
+    - Students who have been awarded an honors diploma and have completed community service qualify for the university scholarship.
+    - Students who have been awarded an honors diploma and have received a faculty recommendation qualify for the university scholarship.
+    - Sophia has completed the core curriculum.
+    - Sophia has passed the science assessment.
+    - Sophia has completed the research methodology course.
+    - Sophia has completed her capstone project.
+    - Sophia has completed the required community service hours.
+    Question: Sophia is eligible for the international program<|im_end|>
+    <|im_start|>assistant
+    <think>
+    
+    </think>
+    
+  SAMPLE 1/1   parse: OK   (think 0 chars, answer 2222 chars)
+  --- MODEL OUTPUT (RAW COMPLETION) ---
+    <z3py>
+    Universe = DeclareSort('Universe')
+    awarded_honors_diploma = Function('awarded_honors_diploma', Universe, BoolSort())
+    completed_capstone_project = Function('completed_capstone_project', Universe, BoolSort())
+    completed_community_service = Function('completed_community_service', Universe, BoolSort())
+    completed_core_curriculum = Function('completed_core_curriculum', Universe, BoolSort())
+    completed_research_methodology = Function('completed_research_methodology', Universe, BoolSort())
+    eligible_for_international_program = Function('eligible_for_international_program', Universe, BoolSort())
+    passed_science_assessment = Function('passed_science_assessment', Universe, BoolSort())
+    passed_language_proficiency_exam = Function('passed_language_proficiency_exam', Universe, BoolSort())
+    qualified_for_advanced_courses = Function('qualified_for_advanced_courses', Universe, BoolSort())
+    received_faculty_recommendation = Function('received_faculty_recommendation', Universe, BoolSort())
+    university_scholarship = Function('university_scholarship', Universe, BoolSort())
+    Sophia = Const('Sophia', Universe)
+    x = Const('x', Universe)
+    premises = [
+        ForAll([x], Implies(And(completed_core_curriculum(x), passed_science_assessment(x)), qualified_for_advanced_courses(x))),
+        ForAll([x], Implies(And(qualified_for_advanced_courses(x), completed_research_methodology(x)), eligible_for_international_program(x))),
+        ForAll([x], Implies(passed_language_proficiency_exam(x), eligible_for_international_program(x))),
+        ForAll([x], Implies(eligible_for_international_program(x), Implies(And(completed_capstone_project(x), completed_community_service(x)), awarded_honors_diploma(x)))),
+        ForAll([x], Implies(awarded_honors_diploma(x), Implies(And(completed_capstone_project(x), completed_community_service(x)), university_scholarship(x))),),
+        ForAll([x], Implies(awarded_honors_diploma(x), Implies(received_faculty_recommendation(x), university_scholarship(x)))),
+        completed_core_curriculum(Sophia),
+        passed_science_assessment(Sophia),
+        completed_research_methodology(Sophia),
+        completed_capstone_project(Sophia),
+        completed_community_service(Sophia)
+    ]
+    goal = eligible_for_international_program(Sophia)
+    </z3py>
+  --- PARSED FOL / Z3 PROGRAM ---
+    Universe = DeclareSort('Universe')
+    awarded_honors_diploma = Function('awarded_honors_diploma', Universe, BoolSort())
+    completed_capstone_project = Function('completed_capstone_project', Universe, BoolSort())
+    completed_community_service = Function('completed_community_service', Universe, BoolSort())
+    completed_core_curriculum = Function('completed_core_curriculum', Universe, BoolSort())
+    completed_research_methodology = Function('completed_research_methodology', Universe, BoolSort())
+    eligible_for_international_program = Function('eligible_for_international_program', Universe, BoolSort())
+    passed_science_assessment = Function('passed_science_assessment', Universe, BoolSort())
+    passed_language_proficiency_exam = Function('passed_language_proficiency_exam', Universe, BoolSort())
+    qualified_for_advanced_courses = Function('qualified_for_advanced_courses', Universe, BoolSort())
+    received_faculty_recommendation = Function('received_faculty_recommendation', Universe, BoolSort())
+    university_scholarship = Function('university_scholarship', Universe, BoolSort())
+    Sophia = Const('Sophia', Universe)
+    x = Const('x', Universe)
+    premises = [
+        ForAll([x], Implies(And(completed_core_curriculum(x), passed_science_assessment(x)), qualified_for_advanced_courses(x))),
+        ForAll([x], Implies(And(qualified_for_advanced_courses(x), completed_research_methodology(x)), eligible_for_international_program(x))),
+        ForAll([x], Implies(passed_language_proficiency_exam(x), eligible_for_international_program(x))),
+        ForAll([x], Implies(eligible_for_international_program(x), Implies(And(completed_capstone_project(x), completed_community_service(x)), awarded_honors_diploma(x)))),
+        ForAll([x], Implies(awarded_honors_diploma(x), Implies(And(completed_capstone_project(x), completed_community_service(x)), university_scholarship(x))),),
+        ForAll([x], Implies(awarded_honors_diploma(x), Implies(received_faculty_recommendation(x), university_scholarship(x)))),
+        completed_core_curriculum(Sophia),
+        passed_science_assessment(Sophia),
+        completed_research_methodology(Sophia),
+        completed_capstone_project(Sophia),
+        completed_community_service(Sophia)
+    ]
+    goal = eligible_for_international_program(Sophia)
+
+
+--------------------------------------------------------------------------------
+PROMPT 4/4  (option D: Sophia needs to pass the language proficiency exam to get an honors diploma)
+--------------------------------------------------------------------------------
+  --- PROMPT INPUT TO MODEL ---
+    <|im_start|>system
+    You are a logical translator. Convert natural-language premises and a question into a Z3 Python program that the solver can execute directly.
+    
+    Rules:
+    1. Declare every sort, predicate, function, and constant you use. The universe sort is always `U = DeclareSort('U')`.
+    2. Predicates returning a truth value use `Function('P', U, ..., BoolSort())`.
+    3. Functions returning a number (used inside comparisons like `attendance(s,m) >= 80`) use `Function('f', U, ..., RealSort())`.
+    4. Constants use `Const('name', U)`; quantifier variables use `Const('x', U)` too — only their use distinguishes them.
+    5. Use `ForAll([x], body)`, `Exists([x], body)`, `Implies(a, b)`, `And(a, b, ...)`, `Or(a, b, ...)`, `Not(a)`.
+    6. Comparisons: `a == b`, `a != b`, `a >= b`, etc.
+    7. Build a Python list called `premises` containing one Z3 BoolRef per natural-language premise, in order.
+    8. Build a single `goal` (Z3 BoolRef) that captures the question.
+    9. Output exactly one block:
+       <z3py>...code...</z3py>
+       Do not output anything else. No markdown fences, no commentary.<|im_end|>
+    <|im_start|>user
+    Premises:
+    - Every student who passes all required courses with a GPA of at least 2.0 graduates.
+    - Alice passes all required courses.
+    - Alice has a GPA of 3.5.
+    Question: Does Alice graduate?<|im_end|>
+    <|im_start|>assistant
+    <z3py>
+    U = DeclareSort('U')
+    passes_required = Function('passes_required', U, BoolSort())
+    gpa = Function('gpa', U, RealSort())
+    graduates = Function('graduates', U, BoolSort())
+    alice = Const('alice', U)
+    s = Const('s', U)
+    premises = [
+        ForAll([s], Implies(And(passes_required(s), gpa(s) >= 2.0), graduates(s))),
+        passes_required(alice),
+        gpa(alice) == 3.5,
+    ]
+    goal = graduates(alice)
+    </z3py><|im_end|>
+    <|im_start|>user
+    Premises:
+    - A student is eligible for the merit scholarship only if their GPA is at least 3.6.
+    - Bob's GPA is 3.4.
+    Question: Is Bob eligible for the merit scholarship?<|im_end|>
+    <|im_start|>assistant
+    <z3py>
+    U = DeclareSort('U')
+    gpa = Function('gpa', U, RealSort())
+    merit = Function('merit', U, BoolSort())
+    bob = Const('bob', U)
+    s = Const('s', U)
+    premises = [
+        ForAll([s], Implies(merit(s), gpa(s) >= 3.6)),
+        gpa(bob) == 3.4,
+    ]
+    goal = merit(bob)
+    </z3py><|im_end|>
+    <|im_start|>user
+    Premises:
+    - Students who have completed the core curriculum and passed the science assessment are qualified for advanced courses.
+    - Students who are qualified for advanced courses and have completed research methodology are eligible for the international program.
+    - Students who have passed the language proficiency exam are eligible for the international program.
+    - Students who are eligible for the international program and have completed a capstone project are awarded an honors diploma.
+    - Students who have been awarded an honors diploma and have completed community service qualify for the university scholarship.
+    - Students who have been awarded an honors diploma and have received a faculty recommendation qualify for the university scholarship.
+    - Sophia has completed the core curriculum.
+    - Sophia has passed the science assessment.
+    - Sophia has completed the research methodology course.
+    - Sophia has completed her capstone project.
+    - Sophia has completed the required community service hours.
+    Question: Sophia needs to pass the language proficiency exam to get an honors diploma<|im_end|>
+    <|im_start|>assistant
+    <think>
+    
+    </think>
+    
+  SAMPLE 1/1   parse: OK   (think 0 chars, answer 2134 chars)
+  --- MODEL OUTPUT (RAW COMPLETION) ---
+    <z3py>
+    Universe = DeclareSort('Universe')
+    awarded_honors_diploma = Function('awarded_honors_diploma', Universe, BoolSort())
+    completed_capstone_project = Function('completed_capstone_project', Universe, BoolSort())
+    completed_community_service = Function('completed_community_service', Universe, BoolSort())
+    completed_core_curriculum = Function('completed_core_curriculum', Universe, BoolSort())
+    completed_research_methodology = Function('completed_research_methodology', Universe, BoolSort())
+    eligible_for_international_program = Function('eligible_for_international_program', Universe, BoolSort())
+    passed_language_proficiency_exam = Function('passed_language_proficiency_exam', Universe, BoolSort())
+    passed_science_assessment = Function('passed_science_assessment', Universe, BoolSort())
+    qualified_for_advanced_courses = Function('qualified_for_advanced_courses', Universe, BoolSort())
+    received_faculty_recommendation = Function('received_faculty_recommendation', Universe, BoolSort())
+    university_scholarship = Function('university_scholarship', Universe, BoolSort())
+    Sophia = Const('Sophia', Universe)
+    x = Const('x', Universe)
+    premises = [
+        ForAll([x], Implies(And(completed_core_curriculum(x), passed_science_assessment(x)), qualified_for_advanced_courses(x))),
+        ForAll([x], Implies(And(qualified_for_advanced_courses(x), completed_research_methodology(x)), eligible_for_international_program(x))),
+        ForAll([x], Implies(passed_language_proficiency_exam(x), eligible_for_international_program(x))),
+        ForAll([x], Implies(eligible_for_international_program(x), And(completed_capstone_project(x), awarded_honors_diploma(x)))),
+        ForAll([x], Implies(And(awarded_honors_diploma(x), completed_community_service(x)), university_scholarship(x))),
+        ForAll([x], Implies(And(awarded_honors_diploma(x), received_faculty_recommendation(x)), university_scholarship(x))),
+        completed_core_curriculum(Sophia),
+        passed_science_assessment(Sophia),
+        completed_research_methodology(Sophia),
+        completed_capstone_project(Sophia),
+        completed_community_service(Sophia)
+    ]
+    goal = passed_language_proficiency_exam(Sophia)
+    </z3py>
+  --- PARSED FOL / Z3 PROGRAM ---
+    Universe = DeclareSort('Universe')
+    awarded_honors_diploma = Function('awarded_honors_diploma', Universe, BoolSort())
+    completed_capstone_project = Function('completed_capstone_project', Universe, BoolSort())
+    completed_community_service = Function('completed_community_service', Universe, BoolSort())
+    completed_core_curriculum = Function('completed_core_curriculum', Universe, BoolSort())
+    completed_research_methodology = Function('completed_research_methodology', Universe, BoolSort())
+    eligible_for_international_program = Function('eligible_for_international_program', Universe, BoolSort())
+    passed_language_proficiency_exam = Function('passed_language_proficiency_exam', Universe, BoolSort())
+    passed_science_assessment = Function('passed_science_assessment', Universe, BoolSort())
+    qualified_for_advanced_courses = Function('qualified_for_advanced_courses', Universe, BoolSort())
+    received_faculty_recommendation = Function('received_faculty_recommendation', Universe, BoolSort())
+    university_scholarship = Function('university_scholarship', Universe, BoolSort())
+    Sophia = Const('Sophia', Universe)
+    x = Const('x', Universe)
+    premises = [
+        ForAll([x], Implies(And(completed_core_curriculum(x), passed_science_assessment(x)), qualified_for_advanced_courses(x))),
+        ForAll([x], Implies(And(qualified_for_advanced_courses(x), completed_research_methodology(x)), eligible_for_international_program(x))),
+        ForAll([x], Implies(passed_language_proficiency_exam(x), eligible_for_international_program(x))),
+        ForAll([x], Implies(eligible_for_international_program(x), And(completed_capstone_project(x), awarded_honors_diploma(x)))),
+        ForAll([x], Implies(And(awarded_honors_diploma(x), completed_community_service(x)), university_scholarship(x))),
+        ForAll([x], Implies(And(awarded_honors_diploma(x), received_faculty_recommendation(x)), university_scholarship(x))),
+        completed_core_curriculum(Sophia),
+        passed_science_assessment(Sophia),
+        completed_research_methodology(Sophia),
+        completed_capstone_project(Sophia),
+        completed_community_service(Sophia)
+    ]
+    goal = passed_language_proficiency_exam(Sophia)
+
+================================================================================
+PARSE SUCCESS: 4/4 = 100.0%
+================================================================================
