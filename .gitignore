@@ -1,14 +1,16 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
-.venv/
-venv/
+.venv*/
+venv*/
 .env
 .idea/
 .vscode/
 
 artifacts/
 data/
+models/
+Result/
 *.bin
 *.safetensors
 *.gguf

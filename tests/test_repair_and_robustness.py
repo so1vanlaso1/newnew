@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from data.types import AnswerType, Record, Translation
 from pipeline import PipelineConfig, _best_premise_env, _solve_mcq
 from solver.z3_runner import premises_of
-from translator.infer import _adapter_target_paths, assert_adapter_matches_base
+from translator.llama_fol import _adapter_target_paths, assert_adapter_matches_base
 from translator.parse import extract_goal_expr
 from translator.repair import repair_program
 

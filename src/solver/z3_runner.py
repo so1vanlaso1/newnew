@@ -541,10 +541,17 @@ def run_mcq(
     option_goals: list[str],
     timeout_ms: int = 5000,
     emit_unsat_core: bool = True,
+    tiebreak_smallest_core: bool = False,
 ) -> SolverVerdict:
     """Pick the option whose goal is entailed by the premises; otherwise emit
     'Unknown', which is a real answer in the EXACT dataset when no listed
-    option follows from the premises."""
+    option follows from the premises.
+
+    When `tiebreak_smallest_core` and more than one option is entailed, pick the
+    option proved from the FEWEST premises (smallest unsat core) — the most
+    directly supported claim — rather than abstaining. This suits forward-chaining
+    records where several options hold along one chain (e.g. eligibility ⇒ diploma
+    ⇒ scholarship) and the intended answer is the nearest link, not the deepest."""
     t0 = time.perf_counter()
     candidates: list[tuple[int, list[str]]] = []
     for i, goal_src in enumerate(option_goals):
@@ -557,8 +564,14 @@ def run_mcq(
             candidates.append((i, core))
 
     elapsed = (time.perf_counter() - t0) * 1000
+    chosen: tuple[int, list[str]] | None = None
     if len(candidates) == 1:
-        chosen_idx, chosen_core = candidates[0]
+        chosen = candidates[0]
+    elif len(candidates) > 1 and tiebreak_smallest_core:
+        # Smallest proof wins; ties broken by option order (deterministic).
+        chosen = min(candidates, key=lambda c: (len(c[1]), c[0]))
+    if chosen is not None:
+        chosen_idx, chosen_core = chosen
         core = chosen_core
         if chosen_core:
             c_premises, c_goal = _premises_and_goal(
@@ -569,7 +582,5 @@ def run_mcq(
             answer=str(chosen_idx), status="solved",
             unsat_core=core, elapsed_ms=elapsed,
         )
-    # Zero or >1 options entailed → no unique answer. Abstaining with 'Unknown'
-    # is sound: a tie means the premises don't single out one option, and a
-    # largest-core tiebreak would be arbitrary.
+    # Zero options entailed (or >1 and no tie-break) → no unique answer.
     return SolverVerdict(answer="Unknown", status="solved", elapsed_ms=elapsed)

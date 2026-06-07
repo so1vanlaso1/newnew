@@ -942,6 +942,7 @@ def _walk_symbol_usages(
 def _resolve_canonical(
     all_usages: dict[str, set[tuple[str, int]]],
     goal_usages: dict[str, set[tuple[str, int]]],
+    premise_usages: dict[str, set[tuple[str, int]]] | None = None,
 ) -> dict[str, tuple[str, int] | None]:
     """For every symbol used inconsistently across the record, choose the single
     (role, arity) reading to keep; formulas using it any other way are dropped.
@@ -950,12 +951,17 @@ def _resolve_canonical(
     bare-individual reading with a functional one, or mixes Boolean-predicate and
     universe-function readings.
 
-    The canonical reading is chosen to keep the *goal* solvable:
-      * if the goal uses the symbol with a single reading, that reading wins
-        (the goal is the query — never sacrifice it to a stray premise);
+    The canonical reading keeps the knowledge base coherent:
+      * if the PREMISES use the symbol with a single consistent reading, that
+        reading wins — the premises are the knowledge base, and a single
+        mis-parsed goal arity (e.g. a spurious binary `Eligible(x, y)`) must not
+        be allowed to silently delete every premise that disagrees with it;
+      * else if the goal uses the symbol with a single reading, keep that (the
+        symbol lives only in the goal, or the premises are themselves split);
       * else if it is ever used as a bare individual, keep the individual reading;
       * else there is no safe reading, and every formula using it is dropped.
     """
+    premise_usages = premise_usages or {}
     canonical: dict[str, tuple[str, int] | None] = {}
     for name, role_set in all_usages.items():
         arities = {a for (_, a) in role_set}
@@ -967,8 +973,11 @@ def _resolve_canonical(
         )
         if not is_conflict:
             continue
+        premise_reading = premise_usages.get(name)
         goal_reading = goal_usages.get(name)
-        if goal_reading is not None and len(goal_reading) == 1:
+        if premise_reading is not None and len(premise_reading) == 1:
+            canonical[name] = next(iter(premise_reading))
+        elif goal_reading is not None and len(goal_reading) == 1:
             canonical[name] = next(iter(goal_reading))
         elif "const" in roles:
             canonical[name] = ("const", 0)
@@ -1036,12 +1045,15 @@ def convert_premises_to_z3py(
     for n in premise_nodes:
         if n is not None:
             _walk_symbol_usages(n, all_usages, False, set())
+    # Snapshot the premises-only readings BEFORE folding in the goal, so conflict
+    # resolution can prefer the knowledge base's reading over a stray goal arity.
+    premise_usages: dict[str, set[tuple[str, int]]] = {k: set(v) for k, v in all_usages.items()}
     goal_usages: dict[str, set[tuple[str, int]]] = {}
     if goal_node is not None:
         _walk_symbol_usages(goal_node, goal_usages, False, set())
         for name, rs in goal_usages.items():
             all_usages.setdefault(name, set()).update(rs)
-    canonical = _resolve_canonical(all_usages, goal_usages)
+    canonical = _resolve_canonical(all_usages, goal_usages, premise_usages)
     if canonical:
         premise_nodes = [
             None if (n is not None and _node_conflicts(n, canonical)) else n

@@ -107,6 +107,32 @@ goal = P(a)
     assert v.answer == "Unknown", v
 
 
+_CHAIN_MCQ = """
+U = DeclareSort('U')
+P = Function('P', U, BoolSort())
+Q = Function('Q', U, BoolSort())
+R = Function('R', U, BoolSort())
+a = Const('a', U)
+s = Const('s', U)
+premises = [P(a), ForAll([s], Implies(P(s), Q(s))), ForAll([s], Implies(Q(s), R(s)))]
+goal = P(a)
+"""
+
+
+def test_mcq_abstains_when_multiple_entailed_by_default() -> None:
+    # Both Q(a) and R(a) follow from the chain → >1 entailed → abstain.
+    v = run_mcq(_CHAIN_MCQ, ["Q(a)", "R(a)"])
+    assert v.answer == "Unknown", v
+
+
+def test_mcq_tiebreak_picks_smallest_proof() -> None:
+    # With the tie-break, the most directly supported option (Q(a), proved from
+    # fewer premises than R(a)) wins instead of abstaining.
+    v = run_mcq(_CHAIN_MCQ, ["R(a)", "Q(a)"], tiebreak_smallest_core=True)
+    assert v.status == "solved", v
+    assert v.answer == "1", v  # index of Q(a), the shorter proof
+
+
 # ─── Translator parser ──────────────────────────────────────────────────
 
 

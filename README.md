@@ -1,180 +1,147 @@
-# EXACT 2026 Track 1 — Logic QA Pipeline
+# EXACT 2026 Track 1 — Logic QA Pipeline (Llama NL→FOL → Z3)
 
-Neuro-symbolic pipeline for the **EXACT 2026 (IJCNN) — Track 1: Logic-Based Educational Queries** competition. Translates NL premises to a **Z3 Python DSL** with a LoRA-tuned [Qwen/Qwen3.5-4B-Base](https://huggingface.co/Qwen/Qwen3.5-4B-Base), runs Z3 for entailment, votes across K=5 self-consistency samples, and falls back to chain-of-thought when symbolic fails. **One model** serves both stages — the CoT fallback just disables the LoRA.
+Neuro-symbolic pipeline for the **EXACT 2026 (IJCNN) — Track 1: Logic-Based
+Educational Queries** task. It translates each natural-language premise/question
+to **first-order logic** with **one** model, bridges that FOL into a **Z3** program,
+solves for entailment, votes, and falls back to chain-of-thought when the symbolic
+path is inconclusive.
 
-Production target is an **RTX 5070 (12 GB GDDR7, Blackwell sm_120)** running Linux. Defaults are sized for that envelope.
+**The one model:** [`fvossel/Llama-3.1-8B-Instruct-nl-to-fol`](https://huggingface.co/fvossel/Llama-3.1-8B-Instruct-nl-to-fol)
+— a LoRA adapter on the gated [`meta-llama/Llama-3.1-8B-Instruct`](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct)
+base, loaded in **4-bit (NF4)**. The same resident model serves three roles; the
+last two run on the base chat model with the adapter disabled, so there is no
+second model to load:
 
-Why Z3 Python DSL (not SMT-LIB): the dataset's training FOL already uses Python-style `ForAll(x, …)` / `Exists(x, …)` syntax. Matching the output format minimizes the translation distance for the LoRA. The runner safely exec's translator output in an AST-validated sandbox with allow-listed Z3 names — no `__builtins__`, no attribute access, no imports.
-
-Validated against the real `Logic_Based_Educational_Queries.json` release:
-- **99.4%** of FOL formulas parse with the converter (4443/4470)
-- **94.8%** of generated Z3 Python programs exec cleanly in the sandbox
-- **97.6%** of records (401/411) have all premises convertible
-- 411 source records expand into 808 normalized Records: 416 Yes/No/Uncertain + 360 MCQ + 32 open-ended
-
-Implementation plan: see `~/.claude/plans/https-ura-hcmut-edu-vn-exact-this-is-the-atomic-platypus.md`.
+| Role | Adapter | What it does |
+| --- | --- | --- |
+| 1. translate | **on** | one NL sentence → one FOL formula (`𝜙=∀x (…)`) |
+| 2. group | off | cluster synonymous predicate names (base chat) |
+| 3. CoT fallback | off | reason in NL when symbolic fails (base chat) |
 
 ## Pipeline
 
 ```
-NL premises + Q  ──►  Translator (Qwen3.5-4B-Base + LoRA) ──►  K=5 Z3 Python samples
-                                                          │
-                                                          ▼
-                                              safe-exec → Z3 entailment
-                                              (MCQ returns "Unknown" if no
-                                               option follows)
-                                                          │
-                                ┌─────────────────────────┴────────────────────────┐
-                                ▼                                                  ▼
-                       4–5 of 5 agree (0.95)                            split / open-ended
-                       3 of 5 agree (0.70)                                         │
-                                │                                                  ▼
-                                ▼                                          CoT fallback (K=5)
-                       symbolic answer + unsat-core                                │
-                                │                                                  │
-                                └────────────────────────┬─────────────────────────┘
-                                                         ▼
-                                          {answer, explanation, fol, cot, premises, confidence}
+NL premises + Q  ──►  Llama+adapter (per sentence → FOL)
+                          │
+                          ▼
+                  predicate grouping (Llama base chat clusters synonym names)
+                          │
+                          ▼
+                  deterministic FOL repair (re-ground goal, assert sort guards,
+                  align typo-twin predicate names)  →  assemble Z3 program
+                          │
+                          ▼
+                  safe-exec → Z3 entailment  (MCQ → "Unknown" if no option follows)
+                          │
+            ┌─────────────┴──────────────┐
+            ▼                            ▼
+   a proof was found              no proof / open-ended
+   (high confidence)                      │
+            │                             ▼
+            │                    CoT fallback (Llama base chat, K=5)
+            └──────────────┬──────────────┘
+                           ▼
+        {answer, explanation, fol, cot, premises, confidence}
+```
+
+## Quick start (Windows + NVIDIA GPU)
+
+The base model is **gated**: request access on its
+[HF page](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct), get a
+[token](https://huggingface.co/settings/tokens), then:
+
+```powershell
+$env:HF_TOKEN = "hf_xxxxxxxx"
+.\quickstart.ps1            # venv + CUDA torch + deps + HF login + model download
+```
+
+`quickstart.ps1` pins PyTorch CUDA wheels (default `cu124`; pass `-CudaWheel cu121`
+for an older driver), installs everything, and downloads both the base and the
+adapter into the HF cache. 4-bit needs roughly **8 GB of VRAM** with headroom.
+
+Then run the pipeline — see **[RUN_COMMANDS.md](RUN_COMMANDS.md)** for every command.
+The shortest path:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+python run_pipeline.py --limit 5 --show-gold --show-fol   # smoke test
+python run_pipeline.py --show-gold --out Result\predictions.json   # full run
 ```
 
 ## Project layout
 
 ```
+run_pipeline.py               THE runner: load model → translate → group →
+                              assemble → Z3 → vote → CoT → write Result/*.txt
+quickstart.ps1                one-shot Windows installer (deps + HF + model)
+RUN_COMMANDS.md               every command to run the pipeline
+Logic_Based_Educational_Queries.json   the dataset
 src/
-  data/load.py                EXACT JSON → Record (schema-flexible field aliases,
-                              expands N parallel questions per source record)
+  data/load.py                dataset JSON → Record (schema-flexible aliases)
   data/types.py               Record / Translation / SolverVerdict / FinalAnswer
-  translator/fol_converter.py Unicode/Pythonic FOL → Z3 Python DSL (for training labels)
-  translator/prompt.py        Few-shot NL→Z3 Python prompt
-  translator/parse.py         Robust <z3py> block extraction
-  translator/infer.py         vLLM client + LoRA-aware translator
-  translator/train_lora.py    TRL SFTTrainer LoRA on NL→Z3-Python
-  solver/z3_runner.py         AST-validated safe exec → Z3 → Yes/No/Uncertain/MCQ/Unknown
-  vote.py                     K-of-N majority vote with conservative confidence
-  fallback/cot.py             vLLM CoT fallback with self-consistency (supports Unknown)
-  explain.py                  Unsat-core / CoT → FinalAnswer
-  pipeline.py                 End-to-end orchestration with per-stage timing
-  eval/score.py               P1 accuracy + per-answer-type breakdown
-  cli/{run,eval,inspect}.py
-tests/                        Pytest smoke + end-to-end exec tests (no GPU needed)
-configs/default.yaml          All knobs live here
-data/                         (gitignored) drop EXACT JSON here
-artifacts/                    (gitignored) model adapters + predictions + reports
+  translator/llama_fol.py     the model: base(4-bit)+adapter; NL→FOL + chat backend,
+                              FOL normalization, and FOL→Z3 assembly
+  translator/fol_converter.py Unicode/Pythonic FOL → Z3 Python DSL
+  translator/fol_repair.py    bolt-ons A/B: re-ground goal, assert free sort guards
+  translator/predicate_group.py  bolt-on D: align synonymous predicate names
+  translator/parse.py         goal-expression extraction
+  translator/repair.py        auto-declare undeclared symbols in a Z3 program
+  solver/z3_runner.py         AST-validated safe exec → Z3 → Yes/No/Uncertain/MCQ
+  vote.py                     majority vote with conservative confidence
+  fallback/cot.py             CoT fallback with self-consistency (supports Unknown)
+  explain.py                  unsat-core / CoT → FinalAnswer
+  pipeline.py                 end-to-end orchestration with per-stage timing
+  eval/score.py               accuracy + per-answer-type breakdown
+  cli/eval.py                 score a FinalAnswer-format predictions file
+  cli/inspect.py              inspect a dataset file (fields + answer-type histogram)
+  cli/explain_gold.py         solve the dataset's GOLD FOL straight through Z3 (no model)
+tests/                        pytest CPU tests (no GPU/model download needed)
+Finetune/                     (separate) self-contained LoRA training harness — not
+                              needed to run the pipeline; kept for reference
 ```
 
-## Quick setup (WSL2 + Linux + RTX 5070)
+## How the FOL→Z3 bridge works
 
-vLLM and Unsloth are Linux-only, so you want WSL2 for development.
+The adapter emits one FOL formula per sentence using Unicode operators
+(`∀ ∃ ¬ ∧ ∨ → ↔ ⊕`), prefixed with `𝜙=`. The backend peels the marker; then:
 
-### 1. Install WSL2 + Ubuntu (one time)
+1. **normalize** the surface form (`translator.llama_fol.normalize_fol`),
+2. **group** synonymous predicate names so a premise's `EligibleForScholarship`
+   and the goal's `QualifyForUniversityScholarship` become one relation,
+3. **repair** deterministically (`translator.fol_repair`): re-ground a goal the
+   model over-generalized into a universal rule, and assert free sort guards
+   (`Student(sophia)`) so gated rules can fire,
+4. **convert** to a Z3 Python program (`translator.fol_converter`) and **solve**.
 
-```powershell
-# In an elevated PowerShell on Windows:
-wsl --install -d Ubuntu-22.04
-# Reboot, then finish Ubuntu setup (username/password).
-```
-
-### 2. Set up the Linux env
-
-```bash
-# Inside the WSL2 Ubuntu shell:
-sudo apt update && sudo apt install -y python3.11 python3.11-venv git build-essential
-
-# Verify CUDA is visible (Windows nvidia driver passes through to WSL):
-nvidia-smi
-
-cd "/mnt/c/Users/hi/New folder (2)"
-python3.11 -m venv .venv
-source .venv/bin/activate
-
-pip install --upgrade pip wheel
-pip install -e ".[gpu,dev]"
-# Optional Unsloth speedup:
-# pip install "unsloth[cu121-torch24] @ git+https://github.com/unslothai/unsloth.git"
-```
-
-### 3. Drop the training data
-
-Put the EXACT JSON files under `data/exact2026/`:
-
-```
-data/exact2026/train.json
-data/exact2026/dev.json     (or use --dev-frac to split off train)
-data/exact2026/test.json    (when released)
-```
-
-Confirm the loader auto-detects the right fields:
-
-```bash
-python -m cli.inspect data/exact2026/train.json
-```
-
-If `answer_type` shows `open_ended` for everything (or any other field looks wrong), the release uses different field names than the aliases in `src/data/load.py:FIELD_ALIASES` — add the missing alias there, or pass a `field_map` override.
-
-## Run the pipeline
-
-### Baseline (no LoRA, few-shot translator)
-
-```bash
-python -m cli.run --data data/exact2026/dev.json --out artifacts/dev_baseline.json
-python -m cli.eval --data data/exact2026/dev.json --pred artifacts/dev_baseline.json
-```
-
-### Fine-tune the translator (Day 2)
-
-```bash
-python -m translator.train_lora --train data/exact2026/train.json --dev data/exact2026/dev.json \
-  --out artifacts/translator-lora --epochs 3 --batch-size 2 --grad-accum 8 --lora-r 32
-```
-
-Defaults above (`--batch-size 2 --grad-accum 8`, effective batch 16) target the **5070's 12 GB**. On 16 GB raise to `--batch-size 4 --grad-accum 4`; on 24 GB+ to `--batch-size 8 --grad-accum 2`. Wall time on the 5070 for ~720 rows of NL→Z3-Python on Qwen3.5-4B-Base + 4-bit base + LoRA r=32 is on the order of 1–2 hours.
-
-For the self-contained, ship-to-the-cloud version of training (its own `setup.sh` that also downloads the model), use the [`Finetune/`](Finetune/README.md) folder instead.
-
-### Run with the fine-tuned adapter
-
-```bash
-python -m cli.run --data data/exact2026/dev.json --out artifacts/dev_lora.json \
-  --lora artifacts/translator-lora
-python -m cli.eval --data data/exact2026/dev.json --pred artifacts/dev_lora.json
-```
-
-## Configuration
-
-All knobs live in `configs/default.yaml`. The ones worth tuning first:
-
-| Knob | Default | Notes |
-| --- | --- | --- |
-| `translator.k_samples` | 5 | Drop to 3 if you're tight on the 60s budget. Don't drop to 1. |
-| `translator.temperature` | 0.3 | Higher gives more diversity for the vote, but worse SMT-LIB. |
-| `vote.high_confidence_threshold` | 4 | Vote count for 0.95 confidence (out of K). |
-| `vote.medium_confidence_threshold` | 3 | Vote count for 0.70 confidence; below this triggers CoT fallback. |
-| `solver.timeout_ms` | 5000 | Per Z3 call; tighten if Z3 hangs are eating budget. |
-| `models.quantization` | none | Base model is bf16, so `none` loads it unquantized on vLLM. Use `fp8` for less VRAM, or run 4-bit on the transformers backend: `run_pipeline.py --backend hf --precision 4bit`. |
-| `pipeline.wall_clock_budget_s` | 55 | Per-record wall clock; pipeline will skip CoT if budget is too low. |
+Every rename/repair is done by deterministic code; the model only proposes
+clusters, so the symbolic guarantees hold. All of these can be ablated with CLI
+flags (`--no-group`, `--no-ground-goals`, `--no-type-facts`,
+`--no-deterministic-align`, `--no-mcq-tiebreak`, `--no-cot`).
 
 ## Testing
 
-```bash
-pytest tests/ -v
+```powershell
+pytest tests\ -v
 ```
 
-The smoke tests cover the Z3 wrapper, the LLM-output parser, and the voter — all of which run on CPU and require no model download. Run them after any change to those modules.
+The tests cover the FOL converter, the FOL→Z3 assembly + repair bolt-ons, the
+predicate grouping, the Z3 wrapper, the voter, and the adapter/base compatibility
+guard — all on CPU with **no model download**.
 
 ## Troubleshooting
 
-- **`No module named vllm`** — you're running outside the GPU venv. Activate `.venv` inside WSL.
-- **`CUDA out of memory` during inference** — the bf16 base model (~8 GB) is tight on 12 GB. Switch `models.quantization` to `fp8` (~4 GB, Blackwell-native), or run the transformers backend in 4-bit (`run_pipeline.py --backend hf --precision 4bit`). You can also drop `vllm.gpu_memory_utilization` to 0.75 and `max_model_len` to 3072.
-- **vLLM doesn't see the 5070 (`sm_120`) / can't load `qwen3_5`** — Blackwell + this new architecture need a recent vLLM built against CUDA 12.8 (`pip install --upgrade vllm`). If vLLM can't load the architecture yet, use the transformers backend (`run_pipeline.py --backend hf`) — that's also where the `--precision 4bit/bf16` toggle lives.
-- **Z3 returns `unknown` on most queries** — translator is producing huge formulas. Inspect with `--limit 3` and check the SMT-LIB; the few-shot prompt may need more examples covering the offending pattern.
-- **High `parse_error` rate** — LLM is ignoring the `<smtlib>/<goal>` tag format. Either raise the few-shot example count (`n_fewshot=3`) or LoRA-fine-tune (the trainer enforces the format in the assistant target).
-- **Loader returns 0 records / wrong fields** — re-run `python -m cli.inspect <path>` and update `FIELD_ALIASES` in `src/data/load.py`.
-
-## Day-by-day build order (matches the plan)
-
-| Day | Goal |
-| --- | --- |
-| 0 (½) | Wire data, pipeline, scorer. Run pure-CoT baseline as floor. |
-| 1 | Few-shot translator + Z3 + vote. Compare to Day-0 floor — the gap shows whether translation is the bottleneck. |
-| 2 | LoRA fine-tune the translator. Swap into pipeline and re-evaluate. |
-| 3 | Tune K, thresholds, fallback. Inspect failures by answer type. |
+- **`OSError: ... meta-llama/Llama-3.1-8B-Instruct is gated`** — request access on
+  the model's HF page, then set a valid `$env:HF_TOKEN` (or run
+  `huggingface-cli login`) and re-run `quickstart.ps1`.
+- **`CUDA out of memory`** — 4-bit needs ~8 GB. Close other GPU apps, or lower
+  throughput with `--batch-size 1` (default). Full-precision (`--precision bf16`)
+  needs ~16 GB.
+- **`bitsandbytes` import / 4-bit fails on Windows** — ensure `bitsandbytes>=0.44`
+  and a CUDA-enabled torch (`python -c "import torch; print(torch.cuda.is_available())"`
+  must print `True`).
+- **`No module named torch`** — you're outside the venv. Run
+  `.\.venv\Scripts\Activate.ps1`.
+- **Z3 returns `unknown` / wrong on many rows** — inspect what the model emitted
+  with `--dump-io Result\llama_io.jsonl --limit 5 --show-fol` and check the FOL.
+- **Loader returns 0 records / wrong fields** — run
+  `python -m cli.inspect <path>` and update `FIELD_ALIASES` in `src/data/load.py`.

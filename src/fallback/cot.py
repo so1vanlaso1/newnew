@@ -15,9 +15,25 @@ from __future__ import annotations
 import re
 from collections import Counter
 from dataclasses import dataclass
+from typing import Protocol
 
 from data.types import AnswerType, Record
-from translator.infer import LLMBackend
+
+
+class LLMBackend(Protocol):
+    """Structural type for the chat backend the CoT fallback drives. The Llama
+    backend implements this; `lora_path=None` makes it answer on the base model
+    (adapter disabled)."""
+
+    def chat_generate(
+        self,
+        batch_messages: list[list[dict]],
+        n: int,
+        temperature: float,
+        top_p: float,
+        max_tokens: int,
+        lora_path: str | None,
+    ) -> list[list[str]]: ...
 
 
 @dataclass

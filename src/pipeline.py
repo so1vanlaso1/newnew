@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
+from typing import Protocol
 
 from data.types import AnswerType, FinalAnswer, Record, SolverVerdict, Translation
 from explain import from_cot, from_failure, from_symbolic
@@ -21,10 +22,19 @@ from fallback.cot import CotConfig, run_cot
 from solver.z3_runner import premises_of, run_mcq, run_yes_no_uncertain
 from translator.parse import extract_goal_expr
 from translator.repair import repair_program
-from translator.infer import Translator
 from vote import aggregate
 
 log = logging.getLogger(__name__)
+
+
+class Translator(Protocol):
+    """Structural type for anything `process_record` can drive: it must translate
+    a record into candidate Z3 programs and optionally expose a chat `backend`
+    (a truthy backend enables the Stage-3b CoT fallback; None disables it)."""
+
+    backend: object | None
+
+    def translate(self, record: Record) -> list[list[Translation]]: ...
 
 
 @dataclass
@@ -35,6 +45,17 @@ class PipelineConfig:
     vote_high_threshold: int = 4
     vote_medium_threshold: int = 3
     cot: CotConfig = field(default_factory=CotConfig)
+    # Stage 3b (CoT) requires a chat-capable backend on `translator.backend`.
+    # The secondary T5 translator is a translation-only seq2seq model with no
+    # chat backend, so it disables this and runs symbolic-only. Default True
+    # keeps the primary Qwen pipeline's behavior unchanged.
+    enable_cot_fallback: bool = True
+    # MCQ tie-break: when more than one option is entailed, pick the one whose
+    # unsat core (proof) is smallest — the most directly supported claim — instead
+    # of abstaining with 'Unknown'. Default False keeps the primary pipeline's
+    # (sound) abstention; the T5 path enables it because its forward-chaining
+    # records routinely entail several options along one chain.
+    mcq_tiebreak_smallest_core: bool = False
 
 
 @dataclass
@@ -133,6 +154,7 @@ def _solve_mcq(
             premise_code, option_goals,
             timeout_ms=cfg.solver_timeout_ms,
             emit_unsat_core=cfg.emit_unsat_core,
+            tiebreak_smallest_core=cfg.mcq_tiebreak_smallest_core,
         )
         if v.answer is not None and v.answer.isdigit():
             opt_idx = int(v.answer)
@@ -203,7 +225,8 @@ def process_record(
         or confidence < 0.7
     )
     final: FinalAnswer
-    if need_fallback and budget_left > 5.0:
+    cot_available = cfg.enable_cot_fallback and getattr(translator, "backend", None) is not None
+    if need_fallback and budget_left > 5.0 and cot_available:
         t4 = time.perf_counter()
         cot_answer, cot_trace, cot_conf = run_cot(
             translator.backend, record, cfg.cot

@@ -1,7 +1,7 @@
 """CLI: run the symbolic solver + explanation over a dataset's GOLD FOL.
 
-Unlike ``cli.run`` (which calls the LLM translator), this path skips the model
-entirely and feeds each record's annotated ``premises_fol`` / ``question_fol``
+Unlike ``run_pipeline.py`` (which calls the LLM translator), this path skips the
+model entirely and feeds each record's annotated ``premises_fol`` / ``question_fol``
 straight through the same FOL converter, Z3 solver, and explanation renderer
 the pipeline uses. It is the quickest way to see the new explanations — the
 unsat-core citations for Yes/No and the counter-model witness for Uncertain —
