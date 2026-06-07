@@ -7,10 +7,11 @@ venv*/
 .idea/
 .vscode/
 
-artifacts/
-data/
-models/
-Result/
+# Anchored to the repo ROOT so they don't also match src/data/, etc.
+/artifacts/
+/data/
+/models/
+/Result/
 *.bin
 *.safetensors
 *.gguf

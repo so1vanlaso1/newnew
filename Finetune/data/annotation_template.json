@@ -1,0 +1,98 @@
+[
+  {
+    "premises-NL": [
+      "If a Python code is well-tested, then the project is optimized.",
+      "If a Python code does not follow PEP 8 standards, then it is not well-tested.",
+      "All Python projects are easy to maintain.",
+      "All Python code is well-tested.",
+      "If a Python code follows PEP 8 standards, then it is easy to maintain.",
+      "If a Python code is well-tested, then it follows PEP 8 standards.",
+      "If a Python project is well-structured, then it is optimized.",
+      "If a Python project is easy to maintain, then it is well-tested.",
+      "If a Python project is optimized, then it has clean and readable code.",
+      "All Python projects are well-structured.",
+      "All Python projects have clean and readable code.",
+      "There exists at least one Python project that follows best practices.",
+      "There exists at least one Python project that is optimized.",
+      "If a Python project is not well-structured, then it does not follow PEP 8 standards."
+    ],
+    "premises-FOL": [
+      "∀x (WT(x) → O(x))",
+      "∀x (¬PEP8(x) → ¬WT(x))",
+      "∀x (EM(x))",
+      "∀x (WT(x))",
+      "∀x (PEP8(x) → EM(x))",
+      "∀x (WT(x) → PEP8(x))",
+      "∀x (WS(x) → O(x))",
+      "∀x (EM(x) → WT(x))",
+      "∀x (O(x) → CR(x))",
+      "∀x (WS(x))",
+      "∀x (CR(x))",
+      "∃x (BP(x))",
+      "∃x (O(x))",
+      "∀x (¬WS(x) → ¬PEP8(x))"
+    ],
+    "questions-NL": [
+      "Does it follow that all Python projects are optimized?"
+    ],
+    "questions-FOL": [
+      "∀x (O(x))"
+    ]
+  },
+  {
+    "premises-NL": [
+      "If a Python code is well-tested, then the project is optimized.",
+      "If a Python code follows PEP 8 standards, then it is easy to maintain.",
+      "If a Python project is optimized, then it has clean and readable code.",
+      "If a Python project is not well-structured, then it does not follow PEP 8 standards.",
+      "There exists at least one Python project that follows best practices."
+    ],
+    "premises-FOL": [
+      "∀x (WT(x) → O(x))",
+      "∀x (PEP8(x) → EM(x))",
+      "∀x (O(x) → CR(x))",
+      "∀x (¬WS(x) → ¬PEP8(x))",
+      "∃x (BP(x))"
+    ],
+    "questions-NL": [
+      "Does it follow that well-tested code is optimized?",
+      "Does it follow that PEP 8 compliant code is easy to maintain?",
+      "Does there exist a project that follows best practices?",
+      "Does it follow that non-well-structured code does not follow PEP 8?"
+    ],
+    "questions-FOL": [
+      "∀x (WT(x) → O(x))",
+      "∀x (PEP8(x) → EM(x))",
+      "∃x (BP(x))",
+      "∀x (¬WS(x) → ¬PEP8(x))"
+    ]
+  },
+  {
+    "premises-NL": [
+      "If a Python code is well-tested, then it follows PEP 8 standards.",
+      "If a Python project is well-structured, then it is optimized.",
+      "If a Python project is optimized, then it has clean and readable code.",
+      "There exists at least one Python project that is optimized.",
+      "If a Python code does not follow PEP 8 standards, then it is not well-tested."
+    ],
+    "premises-FOL": [
+      "∀x (WT(x) → PEP8(x))",
+      "∀x (WS(x) → O(x))",
+      "∀x (O(x) → CR(x))",
+      "∃x (O(x))",
+      "∀x (¬PEP8(x) → ¬WT(x))"
+    ],
+    "questions-NL": [
+      "Does it follow that well-tested code has clean and readable code?",
+      "Does it follow that optimized code is well-structured?",
+      "Does there exist optimized code?",
+      "Does it follow that non-optimized code is not well-tested?"
+    ],
+    "questions-FOL": [
+      "∀x (WT(x) → CR(x))",
+      "∀x (O(x) → WS(x))",
+      "∃x (O(x))",
+      "∀x (¬O(x) → ¬WT(x))"
+    ]
+  }
+]
