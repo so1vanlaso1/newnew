@@ -1,7 +1,8 @@
 # Run commands — Llama NL→FOL pipeline
 
-Every command for running the pipeline, in order. Windows / PowerShell. Run them
-from the project root (the folder containing `run_pipeline.py`).
+Every command for running the pipeline, in order. Run them from the project root
+(the folder containing `run_pipeline.py`). The `python run_pipeline.py …` commands
+are identical on Linux and Windows — only setup and venv activation differ.
 
 One model does everything: the **fvossel/Llama-3.1-8B-Instruct-nl-to-fol** LoRA
 adapter on the gated **meta-llama/Llama-3.1-8B-Instruct** base, loaded in 4-bit.
@@ -10,26 +11,36 @@ adapter on the gated **meta-llama/Llama-3.1-8B-Instruct** base, loaded in 4-bit.
 
 ## 0. One-time setup
 
-```powershell
-# Installs venv + CUDA torch + deps, logs in to HF, downloads the model.
-# Set your HF token first (the base model is gated — request access on its HF page).
-$env:HF_TOKEN = "hf_xxxxxxxx"
-.\quickstart.ps1
+The base model is gated — request access on its
+[HF page](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct) and use a
+[token](https://huggingface.co/settings/tokens) first.
+
+**Linux:**
+```bash
+export HF_TOKEN=hf_xxxxxxxx
+chmod +x quickstart.sh
+./quickstart.sh
+# options via env: CUDA_WHL=cu121 ./quickstart.sh   |   SKIP_MODEL_DOWNLOAD=1 ./quickstart.sh
 ```
 
-See [quickstart.ps1](quickstart.ps1) for options (`-CudaWheel cu121`, `-SkipModelDownload`, …).
+**Windows (PowerShell):**
+```powershell
+$env:HF_TOKEN = "hf_xxxxxxxx"
+.\quickstart.ps1            # options: -CudaWheel cu121, -SkipModelDownload
+```
 
 ## 1. Activate the environment (every new shell)
 
-```powershell
-.\.venv\Scripts\Activate.ps1
+```bash
+source .venv/bin/activate           # Linux
+# .\.venv\Scripts\Activate.ps1      # Windows (PowerShell)
 ```
 
 ## 2. Sanity checks (no GPU needed)
 
 ```powershell
 # Unit tests for the FOL→Z3 chain, bolt-ons, grouping, solver, voter (CPU only).
-pytest tests\ -v
+pytest tests/ -v
 
 # Confirm the dataset loads and the answer-type split looks right.
 python -m cli.inspect Logic_Based_Educational_Queries.json
@@ -42,16 +53,16 @@ python run_pipeline.py --limit 5 --show-gold --show-fol
 ```
 
 This loads the model once, then runs translate → group → Z3 → vote → CoT and
-prints each verdict plus a running accuracy. Detailed traces land in `Result\`.
+prints each verdict plus a running accuracy. Detailed traces land in `Result/`.
 
 ## 4. Full run
 
 ```powershell
 # All rows, print gold + accuracy, write predictions JSON.
-python run_pipeline.py --show-gold --out Result\predictions.json
+python run_pipeline.py --show-gold --out Result/predictions.json
 ```
 
-Outputs (all under `Result\`, sharing one timestamp):
+Outputs (all under `Result/`, sharing one timestamp):
 
 | File | Contents |
 | --- | --- |
@@ -72,7 +83,7 @@ python run_pipeline.py --only mcq --show-gold
 python run_pipeline.py --start 100 --limit 50 --show-gold
 
 # Dump exactly what the model emits per record (for debugging):
-python run_pipeline.py --limit 10 --dump-io Result\llama_io.jsonl --show-fol
+python run_pipeline.py --limit 10 --dump-io Result/llama_io.jsonl --show-fol
 
 # Self-consistency (K>1 sampling instead of greedy) — slower, more robust FOL:
 python run_pipeline.py --k 5 --show-gold
@@ -112,8 +123,8 @@ Solve the dataset's annotated FOL straight through Z3 — the quickest way to se
 the explanations/scoring without loading the model:
 
 ```powershell
-python -m cli.explain_gold --data Logic_Based_Educational_Queries.json --out Result\gold_explanations.json
-python -m cli.eval --data Logic_Based_Educational_Queries.json --pred Result\gold_explanations.json
+python -m cli.explain_gold --data Logic_Based_Educational_Queries.json --out Result/gold_explanations.json
+python -m cli.eval --data Logic_Based_Educational_Queries.json --pred Result/gold_explanations.json
 ```
 
 ---

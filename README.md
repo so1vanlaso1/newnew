@@ -44,28 +44,37 @@ NL premises + Q  ──►  Llama+adapter (per sentence → FOL)
         {answer, explanation, fol, cot, premises, confidence}
 ```
 
-## Quick start (Windows + NVIDIA GPU)
+## Quick start (NVIDIA GPU)
 
 The base model is **gated**: request access on its
 [HF page](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct), get a
-[token](https://huggingface.co/settings/tokens), then:
+[token](https://huggingface.co/settings/tokens), then run the installer for your OS.
 
-```powershell
-$env:HF_TOKEN = "hf_xxxxxxxx"
-.\quickstart.ps1            # venv + CUDA torch + deps + HF login + model download
+**Linux:**
+```bash
+export HF_TOKEN=hf_xxxxxxxx
+chmod +x quickstart.sh
+./quickstart.sh            # venv + CUDA torch + deps + HF login + model download
 ```
 
-`quickstart.ps1` pins PyTorch CUDA wheels (default `cu124`; pass `-CudaWheel cu121`
-for an older driver), installs everything, and downloads both the base and the
-adapter into the HF cache. 4-bit needs roughly **8 GB of VRAM** with headroom.
+**Windows (PowerShell):**
+```powershell
+$env:HF_TOKEN = "hf_xxxxxxxx"
+.\quickstart.ps1
+```
+
+The installer creates a venv, installs PyTorch + all deps, logs in to HF, and
+downloads both the base and the adapter into the HF cache. 4-bit needs roughly
+**8 GB of VRAM** with headroom. (`quickstart.sh` honors `CUDA_WHL=cu121` /
+`SKIP_MODEL_DOWNLOAD=1`; `quickstart.ps1` has `-CudaWheel` / `-SkipModelDownload`.)
 
 Then run the pipeline — see **[RUN_COMMANDS.md](RUN_COMMANDS.md)** for every command.
 The shortest path:
 
-```powershell
-.\.venv\Scripts\Activate.ps1
+```bash
+source .venv/bin/activate                                 # Windows: .\.venv\Scripts\Activate.ps1
 python run_pipeline.py --limit 5 --show-gold --show-fol   # smoke test
-python run_pipeline.py --show-gold --out Result\predictions.json   # full run
+python run_pipeline.py --show-gold --out Result/predictions.json   # full run
 ```
 
 ## Project layout
