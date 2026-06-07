@@ -232,6 +232,45 @@ def _entities(nodes) -> list[str]:
     return [nm for nm, _ in counts.most_common()]
 
 
+def _unary_subjects(node, bound: set[str], out: set[str]) -> None:
+    """Collect entities that appear as the SOLE argument of a predicate, e.g.
+    `sophia` in ``CompletedCoreCurriculum(sophia)``. Bound quantifier variables
+    are skipped, so a rule's ``Student(x)`` contributes nothing."""
+    if node is None:
+        return
+    if isinstance(node, App):
+        if len(node.args) == 1:
+            arg = node.args[0]
+            if isinstance(arg, Const):
+                out.add(arg.name)
+            elif isinstance(arg, Var) and arg.name not in bound:
+                out.add(arg.name)
+        for a in node.args:
+            _unary_subjects(a, bound, out)
+    elif isinstance(node, Not):
+        _unary_subjects(node.body, bound, out)
+    elif isinstance(node, Quant):
+        _unary_subjects(node.body, bound | set(node.vars), out)
+    elif isinstance(node, (BinOp, Cmp, Arith)):
+        _unary_subjects(node.left, bound, out)
+        _unary_subjects(node.right, bound, out)
+
+
+def _person_entities(nodes) -> set[str]:
+    """Entities that are the subject of at least one unary predicate — the
+    record's *people* (`sophia`, `socrates`). An object that the model only ever
+    parked in a relation's argument position (`Curriculum` in the mis-parsed
+    ``Completed(Curriculum, sophia)``) is never a unary subject, so it is excluded.
+
+    Sort guards like ``Student`` only make sense on people; asserting them for
+    every constant produces the unsound ``Student(Curriculum)`` facts."""
+    out: set[str] = set()
+    for n in nodes:
+        if n is not None:
+            _unary_subjects(n, set(), out)
+    return out
+
+
 # Public string-level helpers (used by translator.predicate_group's bolt-on D).
 
 
@@ -423,7 +462,11 @@ def add_type_facts(
     if not free_guards:
         return list(premises_fol)
 
-    ents = _entities(valid)
+    # Assert sort guards only for PEOPLE (unary-predicate subjects), never for
+    # object constants the model dumped into a relation's argument position — that
+    # is what produced the unsound `Student(Curriculum)` / `Student(capstoneProject)`.
+    persons = _person_entities(valid)
+    ents = [e for e in _entities(valid) if e in persons]
     if not ents:
         return list(premises_fol)
 

@@ -173,7 +173,7 @@ def test_add_type_facts_excludes_goal_predicate():
     assert add_type_facts(premises, goal_fol="Student(sophia)") == premises
 
 
-def test_add_type_facts_asserts_for_every_entity():
+def test_add_type_facts_asserts_for_every_person_entity():
     premises = [
         "FORALL x (Person(x) → Mortal(x))",
         "FORALL x (Person(x) → HasName(x))",
@@ -182,6 +182,35 @@ def test_add_type_facts_asserts_for_every_entity():
     ]
     out = add_type_facts(premises)
     assert "Person(socrates)" in out and "Person(plato)" in out
+
+
+def test_add_type_facts_never_types_non_person_objects():
+    # The mis-parse from the run review: "Sophia has completed the core curriculum"
+    # became a binary `Completed(Curriculum, sophia)`, pulling the OBJECT `Curriculum`
+    # into argument position. The sort guard must be asserted for the person sophia
+    # only — never `Student(Curriculum)` / `Student(capstoneProject)`.
+    premises = [
+        "FORALL x (Student(x) ∧ CompletedCoreCurriculum(x) → Qualified(x))",
+        "FORALL x (Student(x) ∧ Qualified(x) → Eligible(x))",
+        "CompletedCoreCurriculum(sophia)",        # unary fact → sophia is a person
+        "Completed(Curriculum, sophia)",          # binary → Curriculum is an object
+        "Passed(sophia, scienceAssessment)",      # binary → scienceAssessment is an object
+    ]
+    out = add_type_facts(premises)
+    assert "Student(sophia)" in out
+    assert "Student(Curriculum)" not in out
+    assert "Student(scienceAssessment)" not in out
+
+
+def test_add_type_facts_no_unary_subject_asserts_nothing():
+    # When NO entity is ever a unary-predicate subject we cannot tell a person from
+    # an object, so assert nothing rather than risk typing an object.
+    premises = [
+        "FORALL x (Student(x) ∧ A(x) → B(x))",
+        "FORALL x (Student(x) ∧ B(x) → C(x))",
+        "Completed(Curriculum, sophia)",
+    ]
+    assert add_type_facts(premises) == premises
 
 
 # ─── the payoff: bolt-ons turn a dead record into a proof ─────────────────

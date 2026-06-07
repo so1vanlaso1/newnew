@@ -192,6 +192,90 @@ def test_safe_keeps_semantic_llm_merge_strings_cannot_see():
     assert m == {"QualifyForUniversityScholarship": "EligibleForScholarship"}
 
 
+# ─── over-merge guard: same verb, different object → distinct requirements ──
+
+
+def test_safe_rejects_same_verb_different_object_merge():
+    # The catastrophic LLM merge: three separate `Completed…` REQUIREMENTS lumped
+    # together. They share the verb but name different things → must stay distinct.
+    fol = [
+        "FORALL x (CompletedCapstoneProject(x) → A(x))",
+        "FORALL x (CompletedCoreCurriculum(x) → B(x))",
+        "FORALL x (CompletedCommunityService(x) → C(x))",
+    ]
+    m = safe_canonical_map(
+        fol,
+        llm_clusters=[[
+            "CompletedCapstoneProject",
+            "CompletedCoreCurriculum",
+            "CompletedCommunityService",
+        ]],
+    )
+    assert m == {}  # no two of these requirements may be fused
+
+
+def test_safe_rejects_cross_concept_merge_that_creates_contradiction():
+    # `ReceivedSafetyEndorsement → CompletedHazmatTraining` is the merge that made a
+    # program assert both CompletedHazmatTraining(john) and its negation.
+    fol = [
+        "FORALL x (ReceivedSafetyEndorsement(x) → Cleared(x))",
+        "CompletedHazmatTraining(john)",
+        "¬ ReceivedSafetyEndorsement(john)",
+    ]
+    m = safe_canonical_map(
+        fol, llm_clusters=[["ReceivedSafetyEndorsement", "CompletedHazmatTraining"]]
+    )
+    assert m == {}
+
+
+def test_safe_rejects_scholarship_vs_international_program_merge():
+    # "Changes the meaning completely" per the run review.
+    fol = [
+        "FORALL x (QualifyForScholarship(x) → A(x))",
+        "FORALL x (EligibleForInternationalProgram(x) → B(x))",
+    ]
+    m = safe_canonical_map(
+        fol, llm_clusters=[["QualifyForScholarship", "EligibleForInternationalProgram"]]
+    )
+    assert m == {}
+
+
+def test_safe_still_merges_shared_object_synonym():
+    # Different verb, SAME object (scholarship) → genuine synonym, still merged.
+    fol = [
+        "FORALL x (Member(x) → EligibleForScholarship(x))",
+        "QualifyForScholarship(sophia)",
+    ]
+    m = safe_canonical_map(
+        fol, llm_clusters=[["EligibleForScholarship", "QualifyForScholarship"]]
+    )
+    # The two are unified to one symbol (canonical direction is frequency/length).
+    assert len(m) == 1
+    assert set(m) | set(m.values()) == {"EligibleForScholarship", "QualifyForScholarship"}
+
+
+def test_safe_splits_mixed_cluster_keeping_only_the_real_synonym():
+    # One cluster, two true synonyms (HonorsDiploma) + one intruder requirement.
+    fol = [
+        "FORALL x (AwardedHonorsDiploma(x) → A(x))",
+        "GetsHonorsDiploma(sophia)",
+        "ReceivedFacultyRecommendation(sophia)",
+    ]
+    m = safe_canonical_map(
+        fol,
+        llm_clusters=[[
+            "AwardedHonorsDiploma",
+            "GetsHonorsDiploma",
+            "ReceivedFacultyRecommendation",
+        ]],
+    )
+    # The diploma synonyms collapse to one symbol (either direction) …
+    assert set(m) | set(m.values()) == {"AwardedHonorsDiploma", "GetsHonorsDiploma"}
+    # … but the recommendation precondition is never fused into the diploma status.
+    assert "ReceivedFacultyRecommendation" not in m
+    assert "ReceivedFacultyRecommendation" not in m.values()
+
+
 # The capstone: the real q0 record (raw T5 FOL + the real Qwen clusters) solves.
 _Q0_PREMISES = [
     "FORALLx (Student(x) AND CompletedCoreCurriculum(x) AND PassedScienceAssement(x) IMPLIES QualifiedForAdvancedCourses(x))",

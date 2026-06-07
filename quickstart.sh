@@ -96,14 +96,22 @@ section "Project dependencies"
 
 # ── 6. Hugging Face auth (the base model is GATED) ─────────────────────────
 section "Hugging Face login"
+# `hf` is the current CLI; `huggingface-cli` is deprecated. Prefer hf, fall back.
+hf_login()  { if command -v hf >/dev/null 2>&1; then hf auth login "$@";  else huggingface-cli login "$@";  fi; }
+hf_whoami() { if command -v hf >/dev/null 2>&1; then hf auth whoami >/dev/null 2>&1; else huggingface-cli whoami >/dev/null 2>&1; fi; }
 if [ -n "${HF_TOKEN:-}" ]; then
-    huggingface-cli login --token "$HF_TOKEN" || \
-        echo "[warn] token login failed; the token is still used directly for the download below"
+    # NOTE: a set HF_TOKEN is passed EXPLICITLY to the download below and overrides
+    # any cached login. If it's stale/revoked the download 403s even though a good
+    # cached token would have worked — in that case `unset HF_TOKEN` and re-run.
+    hf_login --token "$HF_TOKEN" || \
+        echo "[warn] CLI login failed; the token is passed directly to the download below"
+elif hf_whoami; then
+    echo "Already logged in to Hugging Face (cached token) - skipping login."
 else
-    echo "HF_TOKEN not set. Launching interactive login."
+    echo "Not logged in and HF_TOKEN not set. Launching interactive login."
     echo "You need a token from https://huggingface.co/settings/tokens and"
     echo "access granted at https://huggingface.co/$BASE_MODEL"
-    huggingface-cli login
+    hf_login
 fi
 
 # ── 7. Download the model (base + adapter) into the HF cache ────────────────
@@ -122,9 +130,16 @@ try:
     print(f"  base cached at: {p}")
 except Exception as e:
     raise SystemExit(
-        f"\nFailed to download {base}: {e}\n"
-        "The base is GATED. Request access at its HF page and set a valid HF_TOKEN\n"
-        "(or run 'huggingface-cli login'), then re-run ./quickstart.sh\n"
+        f"\nFailed to download {base}: {e}\n\n"
+        "The base is gated. If you HAVE been granted access, the usual causes are:\n"
+        "  * HF_TOKEN in your shell is stale/revoked (it OVERRIDES your cached login):\n"
+        "      unset HF_TOKEN && ./quickstart.sh\n"
+        "  * your token lacks gated-repo read scope -> use a classic 'Read' token, or\n"
+        "    enable 'Read access to public gated repos' on a fine-grained token.\n"
+        f"  * no access yet -> request it at https://huggingface.co/{base}\n"
+        "Or skip the gate entirely with the ungated mirror (same weights):\n"
+        "  BASE_MODEL=NousResearch/Meta-Llama-3.1-8B-Instruct ./quickstart.sh\n"
+        "  then run with: --base-model NousResearch/Meta-Llama-3.1-8B-Instruct\n"
     )
 print(f"Fetching adapter {adapter}...")
 p = snapshot_download(repo_id=adapter, token=tok)

@@ -236,6 +236,56 @@ def _similar(a: str, b: str, min_len: int = 8, lcp_ratio: float = 0.7,
     return _levenshtein(a, b) / max(la, lb) <= edit_ratio
 
 
+# Connective/preposition tokens that carry no object meaning; dropped before the
+# object-overlap test so `EligibleForScholarship` and `QualifyForUniversityScholarship`
+# still share the object token `scholarship`.
+_OBJECT_STOPWORDS = frozenset({
+    "for", "to", "the", "a", "an", "of", "with", "in", "on", "at", "by",
+    "and", "or", "as", "their", "his", "her", "its", "any", "all", "that",
+})
+
+# Split a CamelCase / snake_case predicate name into word tokens, e.g.
+# `CompletedCapstoneProject` → ["Completed", "Capstone", "Project"],
+# `has_degree` → ["has", "degree"], `GPA` → ["GPA"].
+_TOKEN_SPLIT = re.compile(r"[A-Z]+(?=[A-Z][a-z])|[A-Z][a-z]+|[A-Z]+|[a-z]+|\d+")
+
+
+def _object_tokens(name: str) -> set[str]:
+    """The 'object' (noun) tokens of a predicate name: every token EXCEPT the
+    leading verb/state word, minus connective stopwords, lowercased.
+
+    These predicate names are overwhelmingly ``Verb + Object`` in this dataset
+    (`Completed|CoreCurriculum`, `Passed|ScienceAssessment`, `Received|FacultyRecommendation`),
+    so the leading token is the verb/state and the rest names the requirement. Two
+    requirements that differ in their object are DIFFERENT predicates even when they
+    share the verb."""
+    toks = _TOKEN_SPLIT.findall(name)
+    if len(toks) <= 1:
+        return set()  # single token → no object part to compare
+    return {t.lower() for t in toks[1:] if t.lower() not in _OBJECT_STOPWORDS}
+
+
+def _shared_object(a: str, b: str) -> bool:
+    """Whether two predicate names refer to the same underlying object/requirement.
+
+    True when their object-token sets overlap (genuine synonyms like
+    `EligibleForScholarship` ≈ `QualifyForUniversityScholarship`, both about
+    *scholarship*), OR when the names are near-identical strings (morphological
+    twins). False when the objects are disjoint — that is the over-merge the LLM
+    keeps proposing (`CompletedCapstoneProject` vs `CompletedCoreCurriculum`,
+    `ReceivedSafetyEndorsement` vs `CompletedHazmatTraining`), which fuses distinct
+    requirements and corrupts the reasoning chain.
+
+    When either name has no comparable object part (a single-token predicate) we do
+    not block — there is nothing to contradict, so the other guards decide."""
+    if _similar(a, b):
+        return True
+    oa, ob = _object_tokens(a), _object_tokens(b)
+    if not oa or not ob:
+        return True
+    return bool(oa & ob)
+
+
 def _majority_arity_members(members: list[str], arities: dict[str, int]) -> list[str]:
     """Keep only the members sharing the cluster's most common arity, so a cluster
     never fuses a unary and a binary predicate into one symbol."""
@@ -296,8 +346,15 @@ def safe_canonical_map(
         members = [m for m in cluster if m in parent]          # known, non-entity
         members = _majority_arity_members(members, arities)    # single arity
         members = _drop_polarity_conflicts(members)            # no P vs ¬P
-        for m in members[1:]:
-            union(members[0], m)
+        # Union only the pairs that share an object/requirement, so an LLM cluster
+        # that lumps distinct requirements together (`CompletedCapstoneProject`,
+        # `CompletedCoreCurriculum`, `ReceivedFacultyRecommendation`) keeps the real
+        # synonyms and drops the corrupting merges. Pairwise (not against members[0])
+        # so the result is independent of the cluster's listing order.
+        for i in range(len(members)):
+            for j in range(i + 1, len(members)):
+                if _shared_object(members[i], members[j]):
+                    union(members[i], members[j])
 
     # (2) deterministic near-identity (same arity, same polarity)
     if deterministic:
