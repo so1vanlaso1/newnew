@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from data.types import SolverVerdict
 from solver.z3_runner import run_yes_no_uncertain, run_mcq
 from translator.parse import parse_translator_output
-from vote import aggregate
+from vote import NONCOMMITTAL_MAX_CONFIDENCE, aggregate
 
 
 # ─── Z3 Python DSL runner ────────────────────────────────────────────────
@@ -232,3 +232,18 @@ def test_vote_drops_failed_verdicts_and_uses_conservative_count() -> None:
     ans2, conf2, _ = aggregate(verdicts2, k=5)
     assert ans2 == "Yes"
     assert conf2 == 0.95
+
+
+def test_vote_caps_noncommittal_confidence_so_cot_can_fire() -> None:
+    # A unanimous "Uncertain" is an abstention, not a proof: it must report low
+    # confidence and stay below the pipeline's 0.7 CoT-fallback threshold.
+    ans, conf, _ = aggregate([_v("Uncertain")] * 5, k=5)
+    assert ans == "Uncertain"
+    assert conf <= NONCOMMITTAL_MAX_CONFIDENCE < 0.7
+    # The runner pins thresholds at 1; a single "Unknown" must not become 0.95.
+    ans2, conf2, _ = aggregate([_v("Unknown")], k=1, high_threshold=1, medium_threshold=1)
+    assert ans2 == "Unknown"
+    assert conf2 <= NONCOMMITTAL_MAX_CONFIDENCE
+    # A committal winner is unaffected (still a real proof at full confidence).
+    _, conf3, _ = aggregate([_v("Yes")] * 5, k=5)
+    assert conf3 == 0.95

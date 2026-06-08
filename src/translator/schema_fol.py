@@ -153,6 +153,43 @@ def registry_targets(rule_fols: list[str]) -> dict[str, int]:
     }
 
 
+def terminal_targets(rule_fols: list[str]) -> dict[str, int]:
+    """Unary registry predicates that are a rule CONSEQUENT but never a rule
+    ANTECEDENT — the sinks of the rule graph (the deepest conclusions, e.g.
+    ``EligibleForInternshipProgram`` or ``CanCrossStateLinesWithHazardousCargo``).
+
+    A generic 'does X meet all requirements / what is X's eligibility status'
+    question carries no discriminating requirement word, so it cannot be snapped
+    by token overlap — but it is really asking about the chain's final outcome,
+    which is exactly a terminal. Sort guards and junk fillers are excluded; an
+    ``iff`` premise's predicates are treated as both head and guard (never
+    terminal) since the implication runs both ways."""
+    nodes = [n for n in (_parse_or_none(s) for s in rule_fols) if n is not None]
+    heads: set[str] = set()
+    guards: set[str] = set()
+    for n in nodes:
+        body = _strip_quants(n)
+        if not (isinstance(body, BinOp) and body.op in ("implies", "iff")):
+            continue
+        for name, _ar, _neg in _pred_atoms(body.left):
+            guards.add(name)
+        for name in _all_pred_names(body.right):
+            heads.add(name)
+        if body.op == "iff":
+            for name in _all_pred_names(body.right):
+                guards.add(name)
+    arities = _pred_arities(nodes)
+    sort_guards = _free_sort_guards(nodes) if nodes else set()
+    return {
+        name: arities.get(name, 1)
+        for name in heads
+        if name not in guards
+        and arities.get(name, 1) == 1
+        and name not in sort_guards
+        and name not in _JUNK_PREDS
+    }
+
+
 # ─────────────────────────────────────────────────────────────────────────
 # Snap an English claim onto a registry predicate
 # ─────────────────────────────────────────────────────────────────────────
@@ -205,6 +242,43 @@ def snap_text_to_registry(text: str, targets: dict[str, int]) -> str | None:
 _NEG_NL = re.compile(r"\b(not|never|cannot|can't|won't|doesn't|don't|didn't|no longer|isn't|hasn't|haven't)\b",
                      re.IGNORECASE)
 
+# A 'summary' question asks about the chain's final outcome without naming a
+# specific requirement predicate ("does David meet all the requirements", "what
+# is David's current eligibility status"). Such a goal cannot be snapped by token
+# overlap, so we route it to the rule graph's terminal sink instead.
+_SUMMARY_GOAL = re.compile(
+    r"\b(meets?\s+(all\s+)?(the\s+)?requirements?"
+    r"|all\s+(the\s+)?requirements?"
+    r"|(current\s+)?eligibility(\s+status)?"
+    r"|fully\s+qualif\w*"
+    r"|meet\s+the\s+criteria)\b",
+    re.IGNORECASE,
+)
+
+
+def _snap_terminal(text: str, terminals: dict[str, int]) -> str | None:
+    """Pick the terminal sink a summary question is about. Prefer the terminal
+    whose name shares the most stemmed tokens with the question (so "...for the
+    internship" reaches ``EligibleForInternshipProgram`` over a sibling sink);
+    require a strict winner. With no token overlap at all, fall back to the sole
+    terminal if the rule graph has exactly one — otherwise abstain (return None)
+    rather than guess among several sinks."""
+    if not terminals:
+        return None
+    tt = _nl_tokens(text)
+    scored = sorted(
+        ((len(_name_tokens(name) & tt), name) for name in terminals),
+        key=lambda s: (s[0], -len(s[1]), s[1]),
+        reverse=True,
+    )
+    best = scored[0]
+    if best[0] >= 1:
+        runner = scored[1] if len(scored) > 1 else None
+        if runner is None or runner[0] < best[0]:
+            return best[1]
+        return None
+    return next(iter(terminals)) if len(terminals) == 1 else None
+
 
 def _principal_entity(node, persons: set[str]) -> str | None:
     """The protagonist symbol among a formula's argument-position names: prefer one
@@ -214,6 +288,20 @@ def _principal_entity(node, persons: set[str]) -> str | None:
         if nm.casefold() in persons:
             return nm
     return names[0] if names else None
+
+
+def _proper_name_entity(node, persons: set[str]) -> str | None:
+    """A protagonist the model mis-encoded as a unary PREDICATE (``John(x)``
+    instead of the constant ``john``). Returns the predicate name whose casefold
+    is a known person of the record, so an entity-less existential like
+    ``∃x (Professor(x) ∧ John(x) ∧ …)`` can still be re-grounded onto that person.
+    Constant canonicalization later folds the spelling onto the ground facts'."""
+    if node is None:
+        return None
+    for name in _all_pred_names(node):
+        if name.casefold() in persons:
+            return name
+    return None
 
 
 def _already_on_registry(node, registry: dict[str, int]) -> bool:
@@ -229,12 +317,23 @@ def _already_on_registry(node, registry: dict[str, int]) -> bool:
 
 
 def reshape_fact(fact_fol: str, nl: str, targets: dict[str, int],
-                 persons: set[str], registry: dict[str, int]) -> str:
+                 persons: set[str], registry: dict[str, int],
+                 protagonist: str | None = None) -> str:
     """Rewrite an off-registry ground fact to ``RegistryPred(entity)`` using the
     source sentence; otherwise return the fact unchanged.
 
     Leaves alone any fact whose predicate is already in the registry (a correct
-    translation — including correctly-negated ones)."""
+    translation — including correctly-negated ones).
+
+    When the model mangles a fact into an entity-less existential — e.g.
+    "Professor John has taught for at least 5 years" →
+    ``∃x (Professor(x) ∧ John(x) ∧ …)``, where the protagonist is buried as a
+    bound-variable predicate ``John(x)`` and so is never an argument-position
+    name — there is no entity to re-ground onto. We then fall back to the
+    record's ``protagonist`` (the same fallback ``reshape_goal`` already uses).
+    This is sound for this single-protagonist benchmark: the snap gate has
+    already confirmed the sentence states one specific requirement, and every
+    fact in such a record is about that one person."""
     node = _parse_or_none(fact_fol)
     if node is None or _already_on_registry(node, registry):
         return fact_fol
@@ -242,6 +341,10 @@ def reshape_fact(fact_fol: str, nl: str, targets: dict[str, int],
     if target is None:
         return fact_fol
     entity = _principal_entity(node, persons)
+    if entity is None or entity.casefold() not in persons:
+        # Not a genuine person — recover one buried as a predicate (`John(x)`),
+        # else attribute the requirement to the record's protagonist.
+        entity = _proper_name_entity(node, persons) or protagonist or entity
     if entity is None:
         return fact_fol
     negated = fact_fol.lstrip().startswith(("¬", "~")) or bool(_NEG_NL.search(nl))
@@ -251,13 +354,21 @@ def reshape_fact(fact_fol: str, nl: str, targets: dict[str, int],
 
 def reshape_goal(goal_fol: str, nl: str, targets: dict[str, int],
                  persons: set[str], registry: dict[str, int],
-                 protagonist: str | None) -> str:
+                 protagonist: str | None = None,
+                 terminals: dict[str, int] | None = None) -> str:
     """Rewrite an off-registry goal/option to ``RegistryPred(entity)`` using the
-    question/option text; otherwise return it unchanged for bolt-on A to handle."""
+    question/option text; otherwise return it unchanged for bolt-on A to handle.
+
+    When the question is a 'summary' one (``meets all requirements``) that names no
+    specific requirement, normal token-overlap snapping finds nothing; we then map
+    it to the rule graph's terminal sink (``terminals``) — the final outcome the
+    question is really asking about."""
     node = _parse_or_none(goal_fol)
     if node is not None and _already_on_registry(node, registry):
         return goal_fol
     target = snap_text_to_registry(nl, targets)
+    if target is None and terminals and _SUMMARY_GOAL.search(nl or ""):
+        target = _snap_terminal(nl, terminals)
     if target is None:
         return goal_fol
     entity = _principal_entity(node, persons) if node is not None else None
@@ -327,20 +438,22 @@ def schema_condition(
     if not targets:
         return premises_fol, goals
     registry = harvest_registry(rule_fols)
+    terminals = terminal_targets(rule_fols)
     persons = record_person_entities(norm)
+    protagonist = _protagonist(norm, persons)
 
     new_premises = list(premises_fol)
     for i in fact_idx:
         nl = premises_nl[i] if i < len(premises_nl) else ""
-        new_premises[i] = reshape_fact(norm[i], nl, targets, persons, registry)
+        new_premises[i] = reshape_fact(norm[i], nl, targets, persons, registry,
+                                       protagonist)
 
-    protagonist = _protagonist(norm, persons)
     new_goals: list[tuple[str, list[str]]] = []
     for gi, (label, cands) in enumerate(goals):
         nl = goals_nl[gi] if gi < len(goals_nl) else ""
         reshaped = [
             reshape_goal(normalize_fol(c) if c else c, nl, targets, persons,
-                         registry, protagonist)
+                         registry, protagonist, terminals)
             for c in cands
         ]
         new_goals.append((label, reshaped))

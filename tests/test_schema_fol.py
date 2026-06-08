@@ -31,6 +31,7 @@ from translator.schema_fol import (
     reshape_goal,
     schema_condition,
     snap_text_to_registry,
+    terminal_targets,
 )
 
 SYMBOLIC_PCFG = PipelineConfig(
@@ -254,6 +255,150 @@ def test_process_record_solves_with_schema_conditioning():
     final, _ = process_record(rec, translator, SYMBOLIC_PCFG)
     assert final.answer == "Yes"
     assert final.debug.get("source") != "cot"  # solved symbolically, not via fallback
+
+
+# ─── Fix 2: recover facts the model mangled into entity-less existentials ──
+
+# The Professor John record's rules (records 7–10 in the run review).
+_PROF_JOHN_RULES = [
+    "∀x (FacultyMember(x) ∧ TaughtForAtLeastFiveYears(x) → ExtendedLibraryAccess(x))",
+    "∀x (FacultyMember(x) ∧ ExtendedLibraryAccess(x) → CanAccessRestrictedArchives(x))",
+]
+
+
+def test_reshape_fact_grounds_entityless_existential_via_proper_name_predicate():
+    targets = registry_targets(_PROF_JOHN_RULES)
+    reg = harvest_registry(_PROF_JOHN_RULES)
+    # "Professor John has taught for at least 5 years." came out as an
+    # entity-less existential with John buried as a bound-var predicate.
+    garbled = "∃x (Professor(x) ∧ John(x) ∧ Taught(x))"
+    out = reshape_fact(garbled, "Professor John has taught for at least 5 years.",
+                       targets, {"john"}, reg, protagonist="john")
+    assert out == "TaughtForAtLeastFiveYears(John)"
+
+
+def test_reshape_fact_falls_back_to_protagonist_when_no_entity():
+    rules = ["∀x (Student(x) ∧ CompletedThesis(x) → Distinction(x))"]
+    targets = registry_targets(rules)
+    reg = harvest_registry(rules)
+    # The fact named no person at all; attribute the requirement to the protagonist.
+    out = reshape_fact("∃y (Thesis(y))", "John has completed a thesis.",
+                       targets, {"john"}, reg, protagonist="john")
+    assert out == "CompletedThesis(john)"
+
+
+def test_reshape_fact_without_protagonist_is_unchanged():
+    # No entity AND no protagonist → leave the fact alone (never invent a subject).
+    rules = ["∀x (Student(x) ∧ CompletedThesis(x) → Distinction(x))"]
+    targets = registry_targets(rules)
+    reg = harvest_registry(rules)
+    fol = "∃y (Thesis(y))"
+    assert reshape_fact(fol, "John has completed a thesis.", targets, {"john"}, reg) == fol
+
+
+# ─── Fix 3: map a 'meets all requirements' question to the chain sink ──────
+
+_DAVID_RULES = [
+    "∀x (Student(x) ∧ CompletesCourseA(x) → CanEnrollInCourseB(x))",
+    "∀x (Student(x) ∧ EnrolledInCourseB(x) ∧ PassedCourseB(x) → EnrolledInCourseC(x))",
+    "∀x (Student(x) ∧ EnrolledInCourseC(x) → EligibleForInternshipProgram(x))",
+]
+
+
+def test_terminal_targets_finds_chain_sink():
+    t = terminal_targets(_DAVID_RULES)
+    assert "EligibleForInternshipProgram" in t       # the deepest conclusion
+    assert "EnrolledInCourseC" not in t              # a head, but also a guard downstream
+    assert "Student" not in t                         # a sort guard
+
+
+def test_reshape_goal_maps_summary_question_to_terminal_sink():
+    targets = registry_targets(_DAVID_RULES)
+    reg = harvest_registry(_DAVID_RULES)
+    terms = terminal_targets(_DAVID_RULES)
+    # "meets all requirements" names no requirement predicate; normal snapping
+    # fails, so it routes to the sink whose name shares "internship".
+    out = reshape_goal("MeetRequirements(david)",
+                       "Does David meet all requirements for the internship?",
+                       targets, {"david"}, reg, protagonist="david", terminals=terms)
+    assert out == "EligibleForInternshipProgram(david)"
+
+
+def test_reshape_goal_uses_sole_sink_when_no_token_overlap():
+    rules = [
+        "∀x (Driver(x) ∧ PassedInspection(x) → CanHaulStandard(x))",
+        "∀x (Driver(x) ∧ CanHaulStandard(x) ∧ HasEndorsement(x) → CanHaulHazmat(x))",
+    ]
+    terms = terminal_targets(rules)
+    assert set(terms) == {"CanHaulHazmat"}
+    out = reshape_goal("MeetsAll(john)", "Does John meet all the requirements?",
+                       registry_targets(rules), {"john"}, harvest_registry(rules),
+                       protagonist="john", terminals=terms)
+    assert out == "CanHaulHazmat(john)"
+
+
+def test_reshape_goal_summary_mapping_is_opt_in_by_question_wording():
+    # A non-summary question with no registry match is left for bolt-on A, NOT
+    # snapped to a terminal (we only redirect explicit 'requirements' questions).
+    terms = terminal_targets(_DAVID_RULES)
+    fol = "SomethingElse(david)"
+    out = reshape_goal(fol, "Is David enrolled in Course B?",
+                       registry_targets(_DAVID_RULES), {"david"},
+                       harvest_registry(_DAVID_RULES), protagonist="david", terminals=terms)
+    assert out == fol
+
+
+# ─── Fix 1: an Uncertain/Unknown verdict now reaches the CoT fallback ──────
+
+
+class UncertainThenCotBackend:
+    """Symbolic path yields Uncertain (goal unrelated to the lone premise); the
+    base-chat fallback then commits to a definite 'No'."""
+
+    def translate_sentences(self, sentences: list[str], k: int) -> list[list[str]]:
+        out: list[list[str]] = []
+        for s in sentences:
+            low = s.lower()
+            if "alice is a student" in low:
+                fol = "Student(alice)"
+            elif "graduat" in low:
+                fol = "Graduating(alice)"   # no rule connects it → Uncertain
+            else:
+                fol = "Unknown(thing)"
+            out.append([fol] * k)
+        return out
+
+    def chat_generate(self, batch_messages, n, temperature, top_p, max_tokens, lora_path):
+        return [["Step by step...\nFINAL ANSWER: No"] * n for _ in batch_messages]
+
+
+def _uncertain_record() -> Record:
+    return Record(
+        id="ynu-uncertain",
+        premises_nl=["Alice is a student."],
+        question_nl="Is Alice graduating?",
+        answer_type=AnswerType.YES_NO_UNCERTAIN,
+    )
+
+
+def test_uncertain_verdict_now_triggers_cot_fallback():
+    translator = LlamaFolTranslator(UncertainThenCotBackend(), LlamaFolConfig(k_samples=1))
+    pcfg = PipelineConfig(
+        enable_cot_fallback=True, vote_high_threshold=1, vote_medium_threshold=1
+    )
+    final, _ = process_record(_uncertain_record(), translator, pcfg)
+    # Before Fix 1 the symbolic Uncertain sat at 0.95 and suppressed the fallback.
+    assert final.answer == "No"
+    assert final.debug.get("source") == "cot"
+
+
+def test_uncertain_verdict_kept_at_low_confidence_when_cot_disabled():
+    translator = LlamaFolTranslator(UncertainThenCotBackend(), LlamaFolConfig(k_samples=1))
+    final, _ = process_record(_uncertain_record(), translator, SYMBOLIC_PCFG)
+    # CoT off → keep the symbolic answer, but at honest (non-0.95) confidence.
+    assert final.answer == "Uncertain"
+    assert final.confidence <= 0.45
+    assert final.debug.get("source") == "symbolic"
 
 
 def test_disabling_schema_conditioning_leaves_the_record_dead():
