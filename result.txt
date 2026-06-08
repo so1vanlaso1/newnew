@@ -1,0 +1,1032 @@
+==============================================================================
+Run summary — 2026-06-08 00:57:01
+base=meta-llama/Llama-3.1-8B-Instruct  adapter=fvossel/Llama-3.1-8B-Instruct-nl-to-fol
+precision=bf16  k=1  beams=1
+grouping=on (Llama base chat)   cot_fallback=on (Llama base chat)
+records=20   accuracy=2/20 = 10.0%   elapsed=0.4s
+==============================================================================
+
+### [1/20] 1-2-4-5-7-8-9-10-11-1-2-4-5-7-8-9-10-11_q0   [MCQ]
+Q: Based on the above premises, which is the strongest conclusion?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: Students who have completed the core curriculum and passed the science assessme…
+      → ∀x (Student(x) ∧ CompletedCoreCurriculum(x) ∧ PassedScienceAssessment(x) → QualifiedForAdvancedCourses(x))
+  P1: Students who are qualified for advanced courses and have completed research met…
+      → ∀x (Student(x) ∧ QualifiedForAdvancedCourses(x) ∧ CompletedResearchMethodology(x) → EligibleForInternationalProgram(x))
+  P2: Students who have passed the language proficiency exam are eligible for the int…
+      → ∀x (Student(x) ∧ PassedLanguageProficiencyExam(x) → EligibleForInternationalProgram(x))
+  P3: Students who are eligible for the international program and have completed a ca…
+      → ∀x (Student(x) ∧ EligibleForInternationalProgram(x) ∧ CompletedCapstoneProject(x) → HonorsDiploma(x))
+  P4: Students who have been awarded an honors diploma and have completed community s…
+      → ∀x (Student(x) ∧ HonorsDiploma(x) ∧ CompletedCommunityService(x) → QualifyForScholarship(x))
+  P5: Students who have been awarded an honors diploma and have received a faculty re…
+      → ∀x (Student(x) ∧ HonorsDiploma(x) ∧ FacultyRecommendation(x) → UniversityScholarship(x))
+  P6: Sophia has completed the core curriculum.
+      → Completed(Curriculum, sophia)
+  P7: Sophia has passed the science assessment.
+      → Passed(sophia, scienceAssessment)
+  P8: Sophia has completed the research methodology course.
+      → CompletedResearchMethodologyCourse(sophia)
+  P9: Sophia has completed her capstone project.
+      → Completed(sophia, capstoneProject)
+  P10: Sophia has completed the required community service hours.
+      → CompletedCommunityServiceHours(sophia)
+  option 'Sophia qualifies for the university scholarship':
+      → QualifiesForScholarship(sophia)
+  option 'Sophia needs a faculty recommendation to qualify for the scholarship':
+      → ∀x (Person(x) ∧ Faculty(y) ∧ Scholarship(z) → (Sophia(x) ∧ NeedsRecommendation(x, y) → QualifiesFor(x, z)))
+  option 'Sophia is eligible for the international program':
+      → Eligible(sophia, internationalProgram)
+  option 'Sophia needs to pass the language proficiency exam to get an honors diploma':
+      → PassLanguageProficiencyExam(sophia) → GetHonorsDiploma(sophia)
+-- PHASE B: predicate grouping --
+  merged 6 name(s):
+      CompletedCommunityServiceHours  →  CompletedCommunityService
+      CompletedResearchMethodologyCourse  →  CompletedResearchMethodology
+      FacultyRecommendation  →  Faculty
+      PassedLanguageProficiencyExam  →  PassLanguageProficiencyExam
+      Person  →  Student
+      QualifiesForScholarship  →  QualifyForScholarship
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 4
+  predicted: 'Unknown'  (confidence 0.95, via symbolic)
+  gold:      'Sophia is eligible for the international program'   [WRONG]
+  why: Symbolic derivation from the given premises yields Unknown.
+
+### [2/20] 1-2-4-5-7-8-9-10-11-1-2-4-5-7-8-9-10-11_q1   [YNU]
+Q: Does Sophia qualify for the university scholarship, according to the premises?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: Students who have completed the core curriculum and passed the science assessme…
+      → ∀x (Student(x) ∧ CompletedCoreCurriculum(x) ∧ PassedScienceAssessment(x) → QualifiedForAdvancedCourses(x))
+  P1: Students who are qualified for advanced courses and have completed research met…
+      → ∀x (Student(x) ∧ QualifiedForAdvancedCourses(x) ∧ CompletedResearchMethodology(x) → EligibleForInternationalProgram(x))
+  P2: Students who have passed the language proficiency exam are eligible for the int…
+      → ∀x (Student(x) ∧ PassedLanguageProficiencyExam(x) → EligibleForInternationalProgram(x))
+  P3: Students who are eligible for the international program and have completed a ca…
+      → ∀x (Student(x) ∧ EligibleForInternationalProgram(x) ∧ CompletedCapstoneProject(x) → HonorsDiploma(x))
+  P4: Students who have been awarded an honors diploma and have completed community s…
+      → ∀x (Student(x) ∧ HonorsDiploma(x) ∧ CompletedCommunityService(x) → QualifyForScholarship(x))
+  P5: Students who have been awarded an honors diploma and have received a faculty re…
+      → ∀x (Student(x) ∧ HonorsDiploma(x) ∧ FacultyRecommendation(x) → UniversityScholarship(x))
+  P6: Sophia has completed the core curriculum.
+      → Completed(Curriculum, sophia)
+  P7: Sophia has passed the science assessment.
+      → Passed(sophia, scienceAssessment)
+  P8: Sophia has completed the research methodology course.
+      → CompletedResearchMethodologyCourse(sophia)
+  P9: Sophia has completed her capstone project.
+      → Completed(sophia, capstoneProject)
+  P10: Sophia has completed the required community service hours.
+      → CompletedCommunityServiceHours(sophia)
+  goal:
+      → ∀x (Student(x) ∧ GoodGrades(x) ∧ CommunityService(x) → QualifiesForScholarship(x)) ∧ Student(sophia) ∧ GoodGrades(sophia) ∧ CommunityService(sophia)
+-- PHASE B: predicate grouping --
+  merged 4 name(s):
+      CompletedCommunityService  →  CommunityService
+      CompletedCommunityServiceHours  →  CommunityService
+      CompletedResearchMethodologyCourse  →  CompletedResearchMethodology
+      QualifiesForScholarship  →  QualifyForScholarship
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 1
+  predicted: 'Yes'  (confidence 0.95, via symbolic)
+  gold:      'Yes'   [CORRECT]
+  why: From the premises (Sophia has completed the required community service hours.), the answer is Yes.
+  Z3 program (winning):
+      Universe = DeclareSort('Universe')
+      CommunityService = Function('CommunityService', Universe, BoolSort())
+      Completed = Function('Completed', Universe, Universe, BoolSort())
+      CompletedCapstoneProject = Function('CompletedCapstoneProject', Universe, BoolSort())
+      CompletedCoreCurriculum = Function('CompletedCoreCurriculum', Universe, BoolSort())
+      CompletedResearchMethodology = Function('CompletedResearchMethodology', Universe, BoolSort())
+      EligibleForInternationalProgram = Function('EligibleForInternationalProgram', Universe, BoolSort())
+      FacultyRecommendation = Function('FacultyRecommendation', Universe, BoolSort())
+      HonorsDiploma = Function('HonorsDiploma', Universe, BoolSort())
+      Passed = Function('Passed', Universe, Universe, BoolSort())
+      PassedLanguageProficiencyExam = Function('PassedLanguageProficiencyExam', Universe, BoolSort())
+      PassedScienceAssessment = Function('PassedScienceAssessment', Universe, BoolSort())
+      QualifiedForAdvancedCourses = Function('QualifiedForAdvancedCourses', Universe, BoolSort())
+      QualifyForScholarship = Function('QualifyForScholarship', Universe, BoolSort())
+      Student = Function('Student', Universe, BoolSort())
+      UniversityScholarship = Function('UniversityScholarship', Universe, BoolSort())
+      Curriculum = Const('Curriculum', Universe)
+      capstoneProject = Const('capstoneProject', Universe)
+      scienceAssessment = Const('scienceAssessment', Universe)
+      sophia = Const('sophia', Universe)
+      x = Const('x', Universe)
+      premises = [
+          ForAll([x], Implies(And(And(Student(x), CompletedCoreCurriculum(x)), PassedScienceAssessment(x)), QualifiedForAdvancedCourses(x))),
+          ForAll([x], Implies(And(And(Student(x), QualifiedForAdvancedCourses(x)), CompletedResearchMethodology(x)), EligibleForInternationalProgram(x))),
+          ForAll([x], Implies(And(Student(x), PassedLanguageProficiencyExam(x)), EligibleForInternationalProgram(x))),
+          ForAll([x], Implies(And(And(Student(x), EligibleForInternationalProgram(x)), CompletedCapstoneProject(x)), HonorsDiploma(x))),
+          ForAll([x], Implies(And(And(Student(x), HonorsDiploma(x)), CommunityService(x)), QualifyForScholarship(x))),
+          ForAll([x], Implies(And(And(Student(x), HonorsDiploma(x)), FacultyRecommendation(x)), UniversityScholarship(x))),
+          Completed(Curriculum, sophia),
+          Passed(sophia, scienceAssessment),
+          CompletedResearchMethodology(sophia),
+          Completed(sophia, capstoneProject),
+          CommunityService(sophia),
+          Student(sophia)
+      ]
+      goal = CommunityService(sophia)
+
+### [3/20] 1-2-4-5-7-8-9-10-11-1-2-4-5-7-8-9-10-11_q0   [MCQ]
+Q: Based on the above premises, which conclusion is correct?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: Students who have completed the core curriculum and passed the science assessme…
+      → ∀x (Student(x) ∧ CompletedCoreCurriculum(x) ∧ PassedScienceAssessment(x) → QualifiedForAdvancedCourses(x))
+  P1: Students who are qualified for advanced courses and have completed research met…
+      → ∀x (Student(x) ∧ QualifiedForAdvancedCourses(x) ∧ CompletedResearchMethodology(x) → EligibleForInternationalProgram(x))
+  P2: Students who have passed the language proficiency exam are eligible for the int…
+      → ∀x (Student(x) ∧ PassedLanguageProficiencyExam(x) → EligibleForInternationalProgram(x))
+  P3: Students who are eligible for the international program and have completed a ca…
+      → ∀x (Student(x) ∧ EligibleForInternationalProgram(x) ∧ CompletedCapstoneProject(x) → HonorsDiploma(x))
+  P4: Students who have been awarded an honors diploma and have completed community s…
+      → ∀x (Student(x) ∧ HonorsDiploma(x) ∧ CompletedCommunityService(x) → QualifyForScholarship(x))
+  P5: Students who have been awarded an honors diploma and have received a faculty re…
+      → ∀x (Student(x) ∧ HonorsDiploma(x) ∧ FacultyRecommendation(x) → UniversityScholarship(x))
+  P6: Sophia has completed the core curriculum.
+      → Completed(Curriculum, sophia)
+  P7: Sophia has passed the science assessment.
+      → Passed(sophia, scienceAssessment)
+  P8: Sophia has completed the research methodology course.
+      → CompletedResearchMethodologyCourse(sophia)
+  P9: Sophia has completed her capstone project.
+      → Completed(sophia, capstoneProject)
+  P10: Sophia has completed the required community service hours.
+      → CompletedCommunityServiceHours(sophia)
+  option 'Sophia qualifies for the university scholarship':
+      → QualifiesForScholarship(sophia)
+  option 'Sophia needs a faculty recommendation to qualify for the scholarship':
+      → ∀x (Person(x) ∧ Faculty(y) ∧ Scholarship(z) → (Sophia(x) ∧ NeedsRecommendation(x, y) → QualifiesFor(x, z)))
+  option 'Sophia is eligible for the international program':
+      → Eligible(sophia, internationalProgram)
+  option 'Sophia needs to pass the language proficiency exam to get an honors diploma':
+      → PassLanguageProficiencyExam(sophia) → GetHonorsDiploma(sophia)
+-- PHASE B: predicate grouping --
+  merged 6 name(s):
+      CompletedCommunityServiceHours  →  CompletedCommunityService
+      CompletedResearchMethodologyCourse  →  CompletedResearchMethodology
+      FacultyRecommendation  →  Faculty
+      PassedLanguageProficiencyExam  →  PassLanguageProficiencyExam
+      Person  →  Student
+      QualifiesForScholarship  →  QualifyForScholarship
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 4
+  predicted: 'Unknown'  (confidence 0.95, via symbolic)
+  gold:      'Sophia is eligible for the international program'   [WRONG]
+  why: Symbolic derivation from the given premises yields Unknown.
+
+### [4/20] 1-2-4-5-7-8-9-10-11-1-2-4-5-7-8-9-10-11_q1   [YNU]
+Q: Does Sophia qualify for the university scholarship, according to the premises?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: Students who have completed the core curriculum and passed the science assessme…
+      → ∀x (Student(x) ∧ CompletedCoreCurriculum(x) ∧ PassedScienceAssessment(x) → QualifiedForAdvancedCourses(x))
+  P1: Students who are qualified for advanced courses and have completed research met…
+      → ∀x (Student(x) ∧ QualifiedForAdvancedCourses(x) ∧ CompletedResearchMethodology(x) → EligibleForInternationalProgram(x))
+  P2: Students who have passed the language proficiency exam are eligible for the int…
+      → ∀x (Student(x) ∧ PassedLanguageProficiencyExam(x) → EligibleForInternationalProgram(x))
+  P3: Students who are eligible for the international program and have completed a ca…
+      → ∀x (Student(x) ∧ EligibleForInternationalProgram(x) ∧ CompletedCapstoneProject(x) → HonorsDiploma(x))
+  P4: Students who have been awarded an honors diploma and have completed community s…
+      → ∀x (Student(x) ∧ HonorsDiploma(x) ∧ CompletedCommunityService(x) → QualifyForScholarship(x))
+  P5: Students who have been awarded an honors diploma and have received a faculty re…
+      → ∀x (Student(x) ∧ HonorsDiploma(x) ∧ FacultyRecommendation(x) → UniversityScholarship(x))
+  P6: Sophia has completed the core curriculum.
+      → Completed(Curriculum, sophia)
+  P7: Sophia has passed the science assessment.
+      → Passed(sophia, scienceAssessment)
+  P8: Sophia has completed the research methodology course.
+      → CompletedResearchMethodologyCourse(sophia)
+  P9: Sophia has completed her capstone project.
+      → Completed(sophia, capstoneProject)
+  P10: Sophia has completed the required community service hours.
+      → CompletedCommunityServiceHours(sophia)
+  goal:
+      → ∀x (Student(x) ∧ GoodGrades(x) ∧ CommunityService(x) → QualifiesForScholarship(x)) ∧ Student(sophia) ∧ GoodGrades(sophia) ∧ CommunityService(sophia)
+-- PHASE B: predicate grouping --
+  merged 4 name(s):
+      CompletedCommunityService  →  CommunityService
+      CompletedCommunityServiceHours  →  CommunityService
+      CompletedResearchMethodologyCourse  →  CompletedResearchMethodology
+      QualifiesForScholarship  →  QualifyForScholarship
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 1
+  predicted: 'Yes'  (confidence 0.95, via symbolic)
+  gold:      'Yes'   [CORRECT]
+  why: From the premises (Sophia has completed the required community service hours.), the answer is Yes.
+  Z3 program (winning):
+      Universe = DeclareSort('Universe')
+      CommunityService = Function('CommunityService', Universe, BoolSort())
+      Completed = Function('Completed', Universe, Universe, BoolSort())
+      CompletedCapstoneProject = Function('CompletedCapstoneProject', Universe, BoolSort())
+      CompletedCoreCurriculum = Function('CompletedCoreCurriculum', Universe, BoolSort())
+      CompletedResearchMethodology = Function('CompletedResearchMethodology', Universe, BoolSort())
+      EligibleForInternationalProgram = Function('EligibleForInternationalProgram', Universe, BoolSort())
+      FacultyRecommendation = Function('FacultyRecommendation', Universe, BoolSort())
+      HonorsDiploma = Function('HonorsDiploma', Universe, BoolSort())
+      Passed = Function('Passed', Universe, Universe, BoolSort())
+      PassedLanguageProficiencyExam = Function('PassedLanguageProficiencyExam', Universe, BoolSort())
+      PassedScienceAssessment = Function('PassedScienceAssessment', Universe, BoolSort())
+      QualifiedForAdvancedCourses = Function('QualifiedForAdvancedCourses', Universe, BoolSort())
+      QualifyForScholarship = Function('QualifyForScholarship', Universe, BoolSort())
+      Student = Function('Student', Universe, BoolSort())
+      UniversityScholarship = Function('UniversityScholarship', Universe, BoolSort())
+      Curriculum = Const('Curriculum', Universe)
+      capstoneProject = Const('capstoneProject', Universe)
+      scienceAssessment = Const('scienceAssessment', Universe)
+      sophia = Const('sophia', Universe)
+      x = Const('x', Universe)
+      premises = [
+          ForAll([x], Implies(And(And(Student(x), CompletedCoreCurriculum(x)), PassedScienceAssessment(x)), QualifiedForAdvancedCourses(x))),
+          ForAll([x], Implies(And(And(Student(x), QualifiedForAdvancedCourses(x)), CompletedResearchMethodology(x)), EligibleForInternationalProgram(x))),
+          ForAll([x], Implies(And(Student(x), PassedLanguageProficiencyExam(x)), EligibleForInternationalProgram(x))),
+          ForAll([x], Implies(And(And(Student(x), EligibleForInternationalProgram(x)), CompletedCapstoneProject(x)), HonorsDiploma(x))),
+          ForAll([x], Implies(And(And(Student(x), HonorsDiploma(x)), CommunityService(x)), QualifyForScholarship(x))),
+          ForAll([x], Implies(And(And(Student(x), HonorsDiploma(x)), FacultyRecommendation(x)), UniversityScholarship(x))),
+          Completed(Curriculum, sophia),
+          Passed(sophia, scienceAssessment),
+          CompletedResearchMethodology(sophia),
+          Completed(sophia, capstoneProject),
+          CommunityService(sophia),
+          Student(sophia)
+      ]
+      goal = CommunityService(sophia)
+
+### [5/20] 1-2-3-4-5-6-7-1-2-3-5-6-7_q0   [MCQ]
+Q: Based on the above premises, which conclusion logically follows?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: If a student completes all required courses, they are eligible for graduation.
+      → ∀x (Student(x) ∧ CompletesRequiredCourses(x) → EligibleForGraduation(x))
+  P1: If a student is eligible for graduation and maintains a GPA above 3.5, they gra…
+      → ∀x (Student(x) ∧ EligibleForGraduation(x) ∧ GPAAbove3_5(x) → GraduatesWithHonors(x))
+  P2: If a student graduates with honors and completes a thesis, they receive academi…
+      → ∀x (Student(x) ∧ GraduatesWithHonors(x) ∧ CompletesThesis(x) → ReceivesAcademicDistinction(x))
+  P3: If a student receives academic distinction, they qualify for the graduate fello…
+      → ∀x (Student(x) ∧ ReceivesAcademicDistinction(x) → QualifyForGraduateFellowship(x))
+  P4: John has completed all required courses.
+      → Completed(Courses, John)
+  P5: John maintains a GPA of 3.8.
+      → Maintain(John, 3.8)
+  P6: John has completed a thesis.
+      → Completed(thesis, john)
+  option 'John qualifies for the graduate fellowship program':
+      → GraduateFellowshipProgram(John)
+  option 'John needs faculty recommendation for the fellowship':
+      → NeedsRecommendation(john, fellowship)
+  option 'John must complete an internship to qualify':
+      → ∀x (Person(x) ∧ John(x) → MustCompleteInternship(x))
+  option 'John’s GPA is insufficient for honors':
+      → ∃x (John(x) ∧ InsufficientGPA(x))
+-- PHASE B: predicate grouping --
+  merged 2 name(s):
+      Person  →  Student
+      QualifyForGraduateFellowship  →  GraduateFellowshipProgram
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 4
+  predicted: 'Unknown'  (confidence 0.95, via symbolic)
+  gold:      'John qualifies for the graduate fellowship program'   [WRONG]
+  why: Symbolic derivation from the given premises yields Unknown.
+
+### [6/20] 1-2-3-4-5-6-7-1-2-3-5-6-7_q1   [YNU]
+Q: Does John receive academic distinction, according to the premises?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: If a student completes all required courses, they are eligible for graduation.
+      → ∀x (Student(x) ∧ CompletesRequiredCourses(x) → EligibleForGraduation(x))
+  P1: If a student is eligible for graduation and maintains a GPA above 3.5, they gra…
+      → ∀x (Student(x) ∧ EligibleForGraduation(x) ∧ GPAAbove3_5(x) → GraduatesWithHonors(x))
+  P2: If a student graduates with honors and completes a thesis, they receive academi…
+      → ∀x (Student(x) ∧ GraduatesWithHonors(x) ∧ CompletesThesis(x) → ReceivesAcademicDistinction(x))
+  P3: If a student receives academic distinction, they qualify for the graduate fello…
+      → ∀x (Student(x) ∧ ReceivesAcademicDistinction(x) → QualifyForGraduateFellowship(x))
+  P4: John has completed all required courses.
+      → Completed(Courses, John)
+  P5: John maintains a GPA of 3.8.
+      → Maintain(John, 3.8)
+  P6: John has completed a thesis.
+      → Completed(thesis, john)
+  goal:
+      → ∃x (Person(x) ∧ John(x) → ∃y (Premise(y) ∧ Receive(x, y)))
+-- PHASE B: predicate grouping --
+  (no synonymous names merged)
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 1
+  predicted: 'Uncertain'  (confidence 0.95, via symbolic)
+  gold:      'Yes'   [WRONG]
+  why: Symbolic derivation from the given premises yields Uncertain.
+  Z3 program (winning):
+      Universe = DeclareSort('Universe')
+      Completed = Function('Completed', Universe, Universe, BoolSort())
+      CompletesRequiredCourses = Function('CompletesRequiredCourses', Universe, BoolSort())
+      CompletesThesis = Function('CompletesThesis', Universe, BoolSort())
+      EligibleForGraduation = Function('EligibleForGraduation', Universe, BoolSort())
+      GPAAbove3_5 = Function('GPAAbove3_5', Universe, BoolSort())
+      GraduatesWithHonors = Function('GraduatesWithHonors', Universe, BoolSort())
+      Maintain = Function('Maintain', Universe, RealSort(), BoolSort())
+      QualifyForGraduateFellowship = Function('QualifyForGraduateFellowship', Universe, BoolSort())
+      Receive = Function('Receive', Universe, BoolSort())
+      ReceivesAcademicDistinction = Function('ReceivesAcademicDistinction', Universe, BoolSort())
+      Student = Function('Student', Universe, BoolSort())
+      Courses = Const('Courses', Universe)
+      John = Const('John', Universe)
+      john = Const('john', Universe)
+      thesis = Const('thesis', Universe)
+      x = Const('x', Universe)
+      premises = [
+          ForAll([x], Implies(And(Student(x), CompletesRequiredCourses(x)), EligibleForGraduation(x))),
+          ForAll([x], Implies(And(And(Student(x), EligibleForGraduation(x)), GPAAbove3_5(x)), GraduatesWithHonors(x))),
+          ForAll([x], Implies(And(And(Student(x), GraduatesWithHonors(x)), CompletesThesis(x)), ReceivesAcademicDistinction(x))),
+          ForAll([x], Implies(And(Student(x), ReceivesAcademicDistinction(x)), QualifyForGraduateFellowship(x))),
+          Completed(Courses, John),
+          Maintain(John, 3.8),
+          Completed(thesis, john)
+      ]
+      goal = Receive(John)
+
+### [7/20] 1-2-3-4-5-6-7-8-1-2-3-4-5-6-7-8_q0   [MCQ]
+Q: Based on the premises, what is the correct conclusion about Professor John?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: If a faculty member has taught for at least 5 years, they are eligible for exte…
+      → ∀x (FacultyMember(x) ∧ TaughtForAtLeastFiveYears(x) → EligibleForExtendedLibraryAccess(x))
+  P1: If someone has extended library access and has published at least one academic …
+      → ∀x (Person(x) ∧ ExtendedLibraryAccess(x) ∧ ∃y (AcademicPaper(y) ∧ PublishedBy(x, y)) → CanAccessRestrictedArchives(x))
+  P2: If someone can access restricted archives and has completed research ethics tra…
+      → ∀x (AccessToRestrictedArchives(x) ∧ CompletedResearchEthicsTraining(x) → CanSubmitResearchProposals(x))
+  P3: If someone can submit research proposals and has a departmental endorsement, th…
+      → ∀x (Person(x) ∧ CanSubmitResearchProposals(x) ∧ HasDepartmentalEndorsement(x) → CanApplyForCollaborativeResearchProjects(x))
+  P4: Professor John has taught for at least 5 years.
+      → ∃x (Professor(x) ∧ John(x) ∧ ∀y (Year(y) → (Taught(x, y) → MoreThanFourYearsAgo(y)))
+  P5: Professor John has published at least one academic paper.
+      → ∃x (Professor(x) ∧ John(x) ∧ PublishedAtLeastOnePaper(x))
+  P6: Professor John has completed research ethics training.
+      → CompletedResearchEthicsTraining(john)
+  P7: Professor John has a departmental endorsement.
+      → ∃x (Professor(x) ∧ DepartmentalEndorsement(x) ∧ Has(x, john))
+  option 'He can access restricted archives but cannot submit proposals':
+      → ∃x (Person(x) ∧ AccessRestrictedArchives(x) ∧ ¬SubmitProposals(x))
+  option 'He can apply for collaborative research projects':
+      → ∃x (Person(x) ∧ CanApplyFor(x, CollaborativeResearchProjects))
+  option 'He needs more publications to access archives':
+      → ∃x (Person(x) ∧ NeedsMorePublications(x) → AccessArchives(x))
+  option 'He is eligible for extended library access but cannot apply for projects':
+      → ∃x (Person(x) ∧ EligibleForExtendedLibraryAccess(x) ∧ ¬EligibleForProjects(x))
+-- PHASE B: predicate grouping --
+  merged 7 name(s):
+      AccessRestrictedArchives  →  AccessArchives
+      AccessToRestrictedArchives  →  AccessArchives
+      CanAccessRestrictedArchives  →  AccessArchives
+      CanApplyForCollaborativeResearchProjects  →  CanSubmitResearchProposals
+      ExtendedLibraryAccess  →  EligibleForExtendedLibraryAccess
+      FacultyMember  →  Professor
+      HasDepartmentalEndorsement  →  DepartmentalEndorsement
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 4
+  predicted: 'Unknown'  (confidence 0.95, via symbolic)
+  gold:      'He can propose new courses'   [WRONG]
+  why: Symbolic derivation from the given premises yields Unknown.
+
+### [8/20] 1-2-3-4-5-6-7-8-1-2-3-4-5-6-7-8_q1   [YNU]
+Q: Does Professor John meet all requirements to propose new courses, according to the premises?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: If a faculty member has taught for at least 5 years, they are eligible for exte…
+      → ∀x (FacultyMember(x) ∧ TaughtForAtLeastFiveYears(x) → EligibleForExtendedLibraryAccess(x))
+  P1: If someone has extended library access and has published at least one academic …
+      → ∀x (Person(x) ∧ ExtendedLibraryAccess(x) ∧ ∃y (AcademicPaper(y) ∧ PublishedBy(x, y)) → CanAccessRestrictedArchives(x))
+  P2: If someone can access restricted archives and has completed research ethics tra…
+      → ∀x (AccessToRestrictedArchives(x) ∧ CompletedResearchEthicsTraining(x) → CanSubmitResearchProposals(x))
+  P3: If someone can submit research proposals and has a departmental endorsement, th…
+      → ∀x (Person(x) ∧ CanSubmitResearchProposals(x) ∧ HasDepartmentalEndorsement(x) → CanApplyForCollaborativeResearchProjects(x))
+  P4: Professor John has taught for at least 5 years.
+      → ∃x (Professor(x) ∧ John(x) ∧ ∀y (Year(y) → (Taught(x, y) → MoreThanFourYearsAgo(y)))
+  P5: Professor John has published at least one academic paper.
+      → ∃x (Professor(x) ∧ John(x) ∧ PublishedAtLeastOnePaper(x))
+  P6: Professor John has completed research ethics training.
+      → CompletedResearchEthicsTraining(john)
+  P7: Professor John has a departmental endorsement.
+      → ∃x (Professor(x) ∧ DepartmentalEndorsement(x) ∧ Has(x, john))
+  goal:
+      → ∀x (Professor(x) ∧ John(x) → MeetsRequirementsForCollaborativeResearch(x))
+-- PHASE B: predicate grouping --
+  merged 6 name(s):
+      CanAccessRestrictedArchives  →  AccessToRestrictedArchives
+      EligibleForExtendedLibraryAccess  →  ExtendedLibraryAccess
+      FacultyMember  →  Professor
+      HasDepartmentalEndorsement  →  DepartmentalEndorsement
+      MeetsRequirementsForCollaborativeResearch  →  CanApplyForCollaborativeResearchProjects
+      PublishedAtLeastOnePaper  →  AcademicPaper
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 1
+  predicted: 'Uncertain'  (confidence 0.95, via symbolic)
+  gold:      'Yes'   [WRONG]
+  why: Symbolic derivation from the given premises yields Uncertain.
+  Z3 program (winning):
+      Universe = DeclareSort('Universe')
+      AcademicPaper = Function('AcademicPaper', Universe, BoolSort())
+      AccessToRestrictedArchives = Function('AccessToRestrictedArchives', Universe, BoolSort())
+      CanApplyForCollaborativeResearchProjects = Function('CanApplyForCollaborativeResearchProjects', Universe, BoolSort())
+      CanSubmitResearchProposals = Function('CanSubmitResearchProposals', Universe, BoolSort())
+      CompletedResearchEthicsTraining = Function('CompletedResearchEthicsTraining', Universe, BoolSort())
+      DepartmentalEndorsement = Function('DepartmentalEndorsement', Universe, BoolSort())
+      ExtendedLibraryAccess = Function('ExtendedLibraryAccess', Universe, BoolSort())
+      Has = Function('Has', Universe, Universe, BoolSort())
+      John = Function('John', Universe, BoolSort())
+      Person = Function('Person', Universe, BoolSort())
+      Professor = Function('Professor', Universe, BoolSort())
+      PublishedBy = Function('PublishedBy', Universe, Universe, BoolSort())
+      TaughtForAtLeastFiveYears = Function('TaughtForAtLeastFiveYears', Universe, BoolSort())
+      john = Const('john', Universe)
+      x = Const('x', Universe)
+      y = Const('y', Universe)
+      premises = [
+          ForAll([x], Implies(And(Professor(x), TaughtForAtLeastFiveYears(x)), ExtendedLibraryAccess(x))),
+          ForAll([x], Implies(And(And(Person(x), ExtendedLibraryAccess(x)), Exists([y], And(AcademicPaper(y), PublishedBy(x, y)))), AccessToRestrictedArchives(x))),
+          ForAll([x], Implies(And(AccessToRestrictedArchives(x), CompletedResearchEthicsTraining(x)), CanSubmitResearchProposals(x))),
+          ForAll([x], Implies(And(And(Person(x), CanSubmitResearchProposals(x)), DepartmentalEndorsement(x)), CanApplyForCollaborativeResearchProjects(x))),
+          Exists([x], And(And(Professor(x), John(x)), AcademicPaper(x))),
+          CompletedResearchEthicsTraining(john),
+          Exists([x], And(And(Professor(x), DepartmentalEndorsement(x)), Has(x, john)))
+      ]
+      goal = CanApplyForCollaborativeResearchProjects(john)
+
+### [9/20] 1-2-3-4-5-6-7-8-1-2-3-4-5-6-7-8_q0   [MCQ]
+Q: Based on the premises, what is the correct conclusion about Professor John?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: If a faculty member has taught for at least 5 years, they are eligible for exte…
+      → ∀x (FacultyMember(x) ∧ TaughtForAtLeastFiveYears(x) → EligibleForExtendedLibraryAccess(x))
+  P1: If someone has extended library access and has published at least one academic …
+      → ∀x (Person(x) ∧ ExtendedLibraryAccess(x) ∧ ∃y (AcademicPaper(y) ∧ PublishedBy(x, y)) → CanAccessRestrictedArchives(x))
+  P2: If someone can access restricted archives and has completed research ethics tra…
+      → ∀x (AccessToRestrictedArchives(x) ∧ CompletedResearchEthicsTraining(x) → CanSubmitResearchProposals(x))
+  P3: If someone can submit research proposals and has a departmental endorsement, th…
+      → ∀x (Person(x) ∧ CanSubmitResearchProposals(x) ∧ HasDepartmentalEndorsement(x) → CanApplyForCollaborativeResearchProjects(x))
+  P4: Professor John has taught for at least 5 years.
+      → ∃x (Professor(x) ∧ John(x) ∧ ∀y (Year(y) → (Taught(x, y) → MoreThanFourYearsAgo(y)))
+  P5: Professor John has published at least one academic paper.
+      → ∃x (Professor(x) ∧ John(x) ∧ PublishedAtLeastOnePaper(x))
+  P6: Professor John has completed research ethics training.
+      → CompletedResearchEthicsTraining(john)
+  P7: Professor John has a departmental endorsement.
+      → ∃x (Professor(x) ∧ DepartmentalEndorsement(x) ∧ Has(x, john))
+  option 'He can access restricted archives but cannot submit proposals':
+      → ∃x (Person(x) ∧ AccessRestrictedArchives(x) ∧ ¬SubmitProposals(x))
+  option 'He can apply for collaborative research projects':
+      → ∃x (Person(x) ∧ CanApplyFor(x, CollaborativeResearchProjects))
+  option 'He needs more publications to access archives':
+      → ∃x (Person(x) ∧ NeedsMorePublications(x) → AccessArchives(x))
+  option 'He is eligible for extended library access but cannot apply for projects':
+      → ∃x (Person(x) ∧ EligibleForExtendedLibraryAccess(x) ∧ ¬EligibleForProjects(x))
+-- PHASE B: predicate grouping --
+  merged 7 name(s):
+      AccessRestrictedArchives  →  AccessArchives
+      AccessToRestrictedArchives  →  AccessArchives
+      CanAccessRestrictedArchives  →  AccessArchives
+      CanApplyForCollaborativeResearchProjects  →  CanSubmitResearchProposals
+      ExtendedLibraryAccess  →  EligibleForExtendedLibraryAccess
+      FacultyMember  →  Professor
+      HasDepartmentalEndorsement  →  DepartmentalEndorsement
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 4
+  predicted: 'Unknown'  (confidence 0.95, via symbolic)
+  gold:      'He can apply for collaborative research projects'   [WRONG]
+  why: Symbolic derivation from the given premises yields Unknown.
+
+### [10/20] 1-2-3-4-5-6-7-8-1-2-3-4-5-6-7-8_q1   [YNU]
+Q: Does the logical chain demonstrate that Professor John meets all requirements for collaborative research projects?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: If a faculty member has taught for at least 5 years, they are eligible for exte…
+      → ∀x (FacultyMember(x) ∧ TaughtForAtLeastFiveYears(x) → EligibleForExtendedLibraryAccess(x))
+  P1: If someone has extended library access and has published at least one academic …
+      → ∀x (Person(x) ∧ ExtendedLibraryAccess(x) ∧ ∃y (AcademicPaper(y) ∧ PublishedBy(x, y)) → CanAccessRestrictedArchives(x))
+  P2: If someone can access restricted archives and has completed research ethics tra…
+      → ∀x (AccessToRestrictedArchives(x) ∧ CompletedResearchEthicsTraining(x) → CanSubmitResearchProposals(x))
+  P3: If someone can submit research proposals and has a departmental endorsement, th…
+      → ∀x (Person(x) ∧ CanSubmitResearchProposals(x) ∧ HasDepartmentalEndorsement(x) → CanApplyForCollaborativeResearchProjects(x))
+  P4: Professor John has taught for at least 5 years.
+      → ∃x (Professor(x) ∧ John(x) ∧ ∀y (Year(y) → (Taught(x, y) → MoreThanFourYearsAgo(y)))
+  P5: Professor John has published at least one academic paper.
+      → ∃x (Professor(x) ∧ John(x) ∧ PublishedAtLeastOnePaper(x))
+  P6: Professor John has completed research ethics training.
+      → CompletedResearchEthicsTraining(john)
+  P7: Professor John has a departmental endorsement.
+      → ∃x (Professor(x) ∧ DepartmentalEndorsement(x) ∧ Has(x, john))
+  goal:
+      → ∀x (Professor(x) ∧ John(x) → MeetsRequirementsForCollaborativeResearch(x))
+-- PHASE B: predicate grouping --
+  merged 6 name(s):
+      CanAccessRestrictedArchives  →  AccessToRestrictedArchives
+      EligibleForExtendedLibraryAccess  →  ExtendedLibraryAccess
+      FacultyMember  →  Professor
+      HasDepartmentalEndorsement  →  DepartmentalEndorsement
+      MeetsRequirementsForCollaborativeResearch  →  CanApplyForCollaborativeResearchProjects
+      PublishedAtLeastOnePaper  →  AcademicPaper
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 1
+  predicted: 'Uncertain'  (confidence 0.95, via symbolic)
+  gold:      'Yes'   [WRONG]
+  why: Symbolic derivation from the given premises yields Uncertain.
+  Z3 program (winning):
+      Universe = DeclareSort('Universe')
+      AcademicPaper = Function('AcademicPaper', Universe, BoolSort())
+      AccessToRestrictedArchives = Function('AccessToRestrictedArchives', Universe, BoolSort())
+      CanApplyForCollaborativeResearchProjects = Function('CanApplyForCollaborativeResearchProjects', Universe, BoolSort())
+      CanSubmitResearchProposals = Function('CanSubmitResearchProposals', Universe, BoolSort())
+      CompletedResearchEthicsTraining = Function('CompletedResearchEthicsTraining', Universe, BoolSort())
+      DepartmentalEndorsement = Function('DepartmentalEndorsement', Universe, BoolSort())
+      ExtendedLibraryAccess = Function('ExtendedLibraryAccess', Universe, BoolSort())
+      Has = Function('Has', Universe, Universe, BoolSort())
+      John = Function('John', Universe, BoolSort())
+      Person = Function('Person', Universe, BoolSort())
+      Professor = Function('Professor', Universe, BoolSort())
+      PublishedBy = Function('PublishedBy', Universe, Universe, BoolSort())
+      TaughtForAtLeastFiveYears = Function('TaughtForAtLeastFiveYears', Universe, BoolSort())
+      john = Const('john', Universe)
+      x = Const('x', Universe)
+      y = Const('y', Universe)
+      premises = [
+          ForAll([x], Implies(And(Professor(x), TaughtForAtLeastFiveYears(x)), ExtendedLibraryAccess(x))),
+          ForAll([x], Implies(And(And(Person(x), ExtendedLibraryAccess(x)), Exists([y], And(AcademicPaper(y), PublishedBy(x, y)))), AccessToRestrictedArchives(x))),
+          ForAll([x], Implies(And(AccessToRestrictedArchives(x), CompletedResearchEthicsTraining(x)), CanSubmitResearchProposals(x))),
+          ForAll([x], Implies(And(And(Person(x), CanSubmitResearchProposals(x)), DepartmentalEndorsement(x)), CanApplyForCollaborativeResearchProjects(x))),
+          Exists([x], And(And(Professor(x), John(x)), AcademicPaper(x))),
+          CompletedResearchEthicsTraining(john),
+          Exists([x], And(And(Professor(x), DepartmentalEndorsement(x)), Has(x, john)))
+      ]
+      goal = CanApplyForCollaborativeResearchProjects(john)
+
+### [11/20] 1-2-4-5-6-7-1-2-3-4-5-6-7-8_q0   [MCQ]
+Q: Based on the premises, what can we conclude about John’s qualifications?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: If a driver has passed vehicle inspection and has the appropriate license, they…
+      → ∀x (Driver(x) ∧ PassedVehicleInspection(x) ∧ HasAppropriateLicense(x) → CanTransportStandardGoods(x))
+  P1: If a driver can transport standard goods and has completed hazmat training and …
+      → ∀x (Driver(x) ∧ CanTransportStandardGoods(x) ∧ CompletedHazmatTraining(x) ∧ ReceivedSafetyEndorsement(x) → CanTransportHazardousMaterials(x))
+  P2: If a driver can transport hazardous materials and has an interstate permit, the…
+      → ∀x (Driver(x) ∧ CanTransportHazardousMaterials(x) ∧ HasInterstatePermit(x) → CanCrossStateLinesWithHazardousCargo(x))
+  P3: John has passed vehicle inspection.
+      → PassedVehicleInspection(john)
+  P4: John has the appropriate license.
+      → HasLicense(john)
+  P5: John has completed hazmat training.
+      → CompletedHazmatTraining(john)
+  P6: John has not received a safety endorsement.
+      → ¬ReceivedSafetyEndorsement(john)
+  P7: John has an interstate permit.
+      → HasPermit(john, interstate)
+  option 'John can transport hazardous materials but cannot cross state lines':
+      → TransportHazardousMaterials(john) ∧ ¬CrossStateLines(john)
+  option 'John can cross state lines with hazardous cargo':
+      → ∀x (John(x) ∧ HazardousCargo(x) → CanCrossStateLines(x))
+  option 'John cannot transport hazardous materials':
+      → ¬TransportHazardousMaterials(john)
+  option 'John is not qualified to transport any kind of goods':
+      → ¬∃x (Good(x) ∧ CanTransport(John, x))
+-- PHASE B: predicate grouping --
+  merged 7 name(s):
+      CanCrossStateLines  →  CrossStateLines
+      CanCrossStateLinesWithHazardousCargo  →  CrossStateLines
+      CanTransportHazardousMaterials  →  TransportHazardousMaterials
+      HasAppropriateLicense  →  Driver
+      HasInterstatePermit  →  Driver
+      HasLicense  →  Driver
+      HazardousCargo  →  Good
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 4
+  predicted: 'Unknown'  (confidence 0.95, via symbolic)
+  gold:      'John cannot transport hazardous materials'   [WRONG]
+  why: Symbolic derivation from the given premises yields Unknown.
+
+### [12/20] 1-2-4-5-6-7-1-2-3-4-5-6-7-8_q1   [YNU]
+Q: Does John meet all requirements to cross state lines with hazardous cargo, according to the premises?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: If a driver has passed vehicle inspection and has the appropriate license, they…
+      → ∀x (Driver(x) ∧ PassedVehicleInspection(x) ∧ HasAppropriateLicense(x) → CanTransportStandardGoods(x))
+  P1: If a driver can transport standard goods and has completed hazmat training and …
+      → ∀x (Driver(x) ∧ CanTransportStandardGoods(x) ∧ CompletedHazmatTraining(x) ∧ ReceivedSafetyEndorsement(x) → CanTransportHazardousMaterials(x))
+  P2: If a driver can transport hazardous materials and has an interstate permit, the…
+      → ∀x (Driver(x) ∧ CanTransportHazardousMaterials(x) ∧ HasInterstatePermit(x) → CanCrossStateLinesWithHazardousCargo(x))
+  P3: John has passed vehicle inspection.
+      → PassedVehicleInspection(john)
+  P4: John has the appropriate license.
+      → HasLicense(john)
+  P5: John has completed hazmat training.
+      → CompletedHazmatTraining(john)
+  P6: John has not received a safety endorsement.
+      → ¬ReceivedSafetyEndorsement(john)
+  P7: John has an interstate permit.
+      → HasPermit(john, interstate)
+  goal:
+      → ∀x (John(x) ∧ HazardousCargo(x) → ¬∃y (Premise(y) ∧ CrossStateLines(y, x)))
+-- PHASE B: predicate grouping --
+  merged 4 name(s):
+      CanCrossStateLinesWithHazardousCargo  →  CanTransportHazardousMaterials
+      HasAppropriateLicense  →  Driver
+      HasInterstatePermit  →  Driver
+      HasLicense  →  Driver
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 1
+  predicted: 'Uncertain'  (confidence 0.95, via symbolic)
+  gold:      'No'   [WRONG]
+  why: Symbolic derivation from the given premises yields Uncertain.
+  Z3 program (winning):
+      Universe = DeclareSort('Universe')
+      CanTransportHazardousMaterials = Function('CanTransportHazardousMaterials', Universe, BoolSort())
+      CanTransportStandardGoods = Function('CanTransportStandardGoods', Universe, BoolSort())
+      CompletedHazmatTraining = Function('CompletedHazmatTraining', Universe, BoolSort())
+      CrossStateLines = Function('CrossStateLines', Universe, BoolSort())
+      Driver = Function('Driver', Universe, BoolSort())
+      HasPermit = Function('HasPermit', Universe, Universe, BoolSort())
+      PassedVehicleInspection = Function('PassedVehicleInspection', Universe, BoolSort())
+      ReceivedSafetyEndorsement = Function('ReceivedSafetyEndorsement', Universe, BoolSort())
+      interstate = Const('interstate', Universe)
+      john = Const('john', Universe)
+      x = Const('x', Universe)
+      premises = [
+          ForAll([x], Implies(And(And(Driver(x), PassedVehicleInspection(x)), Driver(x)), CanTransportStandardGoods(x))),
+          ForAll([x], Implies(And(And(And(Driver(x), CanTransportStandardGoods(x)), CompletedHazmatTraining(x)), ReceivedSafetyEndorsement(x)), CanTransportHazardousMaterials(x))),
+          ForAll([x], Implies(And(And(Driver(x), CanTransportHazardousMaterials(x)), Driver(x)), CanTransportHazardousMaterials(x))),
+          PassedVehicleInspection(john),
+          Driver(john),
+          CompletedHazmatTraining(john),
+          Not(ReceivedSafetyEndorsement(john)),
+          HasPermit(john, interstate)
+      ]
+      goal = Not(CrossStateLines(john))
+
+### [13/20] 2-3-6-7-8-2-3-6-7-8_q0   [MCQ]
+Q: Based on the premises, which capabilities does Dr. John have?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: Faculty members with a degree higher than BA can teach undergraduate courses.
+      → ∀x (FacultyMember(x) ∧ HasDegreeHigherThan(x, BA) → CanTeachUndergraduateCourses(x))
+  P1: Faculty members with a degree higher than MSc can teach graduate courses.
+      → ∀x (FacultyMember(x) ∧ HasDegreeHigherThanMSc(x) → CanTeachGraduateCourses(x))
+  P2: Anyone who teaches graduate courses can be a research mentor.
+      → ∀x (TeachesGraduateCourses(x) → CanBeResearchMentor(x))
+  P3: If degree A is higher than B, and B is higher than C, then A is higher than C.
+      → ∀x ∀y ∀z (Degree(x) ∧ Degree(y) ∧ Degree(z) ∧ HigherThan(x, y) ∧ HigherThan(y, z) → HigherThan(x, z))
+  P4: MSc is higher than BA.
+      → ∀x∀y (MastersDegree(x) ∧ BachelorsDegree(y) → Higher(x, y))
+  P5: PhD is higher than MSc.
+      → ∀x∀y (PhD(x) ∧ MSc(y) → Higher(x, y))
+  P6: Dr. John is a faculty member.
+      → FacultyMember(drjohn)
+  P7: Dr. John has a PhD.
+      → HasPhD(drjohn)
+  option 'Can teach undergraduate courses only':
+      → ∀x (Professor(x) → TeachUndergraduateCourses(x))
+  option 'Can be a research mentor':
+      → ∃x (Person(x) ∧ ResearchMentor(x))
+  option 'Cannot teach graduate courses':
+      → ∀x (Teacher(x) ∧ ¬HasGraduateDegree(x) → ¬TeachGraduateCourses(x))
+  option 'Needs additional certification to mentor':
+      → ∀x (Mentor(x) → AdditionalCertification(x))
+-- PHASE B: predicate grouping --
+  merged 13 name(s):
+      AdditionalCertification  →  Degree
+      CanBeResearchMentor  →  Mentor
+      CanTeachGraduateCourses  →  Mentor
+      CanTeachUndergraduateCourses  →  Mentor
+      HasDegreeHigherThan  →  Higher
+      HasPhD  →  PhD
+      HigherThan  →  Higher
+      Professor  →  Person
+      ResearchMentor  →  Mentor
+      TeachGraduateCourses  →  Mentor
+      TeachUndergraduateCourses  →  Mentor
+      Teacher  →  Mentor
+      TeachesGraduateCourses  →  Mentor
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 4
+  predicted: 'Unknown'  (confidence 0.95, via symbolic)
+  gold:      'Can be a research mentor'   [WRONG]
+  why: Symbolic derivation from the given premises yields Unknown.
+
+### [14/20] 2-3-6-7-8-2-3-6-7-8_q1   [YNU]
+Q: Does Dr. John’s PhD qualification make him eligible to be a research mentor, according to the premises?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: Faculty members with a degree higher than BA can teach undergraduate courses.
+      → ∀x (FacultyMember(x) ∧ HasDegreeHigherThan(x, BA) → CanTeachUndergraduateCourses(x))
+  P1: Faculty members with a degree higher than MSc can teach graduate courses.
+      → ∀x (FacultyMember(x) ∧ HasDegreeHigherThanMSc(x) → CanTeachGraduateCourses(x))
+  P2: Anyone who teaches graduate courses can be a research mentor.
+      → ∀x (TeachesGraduateCourses(x) → CanBeResearchMentor(x))
+  P3: If degree A is higher than B, and B is higher than C, then A is higher than C.
+      → ∀x ∀y ∀z (Degree(x) ∧ Degree(y) ∧ Degree(z) ∧ HigherThan(x, y) ∧ HigherThan(y, z) → HigherThan(x, z))
+  P4: MSc is higher than BA.
+      → ∀x∀y (MastersDegree(x) ∧ BachelorsDegree(y) → Higher(x, y))
+  P5: PhD is higher than MSc.
+      → ∀x∀y (PhD(x) ∧ MSc(y) → Higher(x, y))
+  P6: Dr. John is a faculty member.
+      → FacultyMember(drjohn)
+  P7: Dr. John has a PhD.
+      → HasPhD(drjohn)
+  goal:
+      → ∀x (DrJohn(x) ∧ PhDQualification(x) → EligibleToBeResearchMentor(x))
+-- PHASE B: predicate grouping --
+  merged 8 name(s):
+      BachelorsDegree  →  Degree
+      CanTeachGraduateCourses  →  TeachesGraduateCourses
+      EligibleToBeResearchMentor  →  CanBeResearchMentor
+      HasDegreeHigherThan  →  Higher
+      HasPhD  →  PhD
+      HigherThan  →  Higher
+      MastersDegree  →  Degree
+      PhDQualification  →  PhD
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 1
+  predicted: 'Uncertain'  (confidence 0.95, via symbolic)
+  gold:      'No'   [WRONG]
+  why: Symbolic derivation from the given premises yields Uncertain.
+  Z3 program (winning):
+      Universe = DeclareSort('Universe')
+      CanBeResearchMentor = Function('CanBeResearchMentor', Universe, BoolSort())
+      CanTeachUndergraduateCourses = Function('CanTeachUndergraduateCourses', Universe, BoolSort())
+      Degree = Function('Degree', Universe, BoolSort())
+      FacultyMember = Function('FacultyMember', Universe, BoolSort())
+      HasDegreeHigherThanMSc = Function('HasDegreeHigherThanMSc', Universe, BoolSort())
+      Higher = Function('Higher', Universe, Universe, BoolSort())
+      MSc = Function('MSc', Universe, BoolSort())
+      PhD = Function('PhD', Universe, BoolSort())
+      TeachesGraduateCourses = Function('TeachesGraduateCourses', Universe, BoolSort())
+      BA = Const('BA', Universe)
+      drjohn = Const('drjohn', Universe)
+      x = Const('x', Universe)
+      y = Const('y', Universe)
+      z = Const('z', Universe)
+      premises = [
+          ForAll([x], Implies(And(FacultyMember(x), Higher(x, BA)), CanTeachUndergraduateCourses(x))),
+          ForAll([x], Implies(And(FacultyMember(x), HasDegreeHigherThanMSc(x)), TeachesGraduateCourses(x))),
+          ForAll([x], Implies(TeachesGraduateCourses(x), CanBeResearchMentor(x))),
+          ForAll([x, y, z], Implies(And(And(And(And(Degree(x), Degree(y)), Degree(z)), Higher(x, y)), Higher(y, z)), Higher(x, z))),
+          ForAll([x, y], Implies(And(Degree(x), Degree(y)), Higher(x, y))),
+          ForAll([x, y], Implies(And(PhD(x), MSc(y)), Higher(x, y))),
+          FacultyMember(drjohn),
+          PhD(drjohn)
+      ]
+      goal = CanBeResearchMentor(drjohn)
+
+### [15/20] 1-2-3-4-5-6-1-2-3-4-5-6_q0   [MCQ]
+Q: Based on the premises, what can we conclude about the curriculum?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: If a curriculum is well-structured and has exercises, it enhances student engag…
+      → ∀x (Curriculum(x) ∧ WellStructured(x) ∧ HasExercises(x) → EnhancesStudentEngagement(x))
+  P1: If a curriculum enhances student engagement and provides access to advanced res…
+      → ∀x (Curriculum(x) ∧ EnhancesStudentEngagement(x) ∧ ProvidesAccessToAdvancedResources(x) → EnhancesCriticalThinking(x))
+  P2: If a faculty prioritizes pedagogical training and curriculum development, the c…
+      → ∀x (Faculty(x) ∧ PrioritizesPedagogicalTraining(x) ∧ PrioritizesCurriculumDevelopment(x) → WellStructuredCurriculum(x))
+  P3: The faculty prioritizes pedagogical training and curriculum development.
+      → ∀x (Faculty(x) → (PrioritizesPedagogicalTraining(x) ∧ PrioritizesCurriculumDevelopment(x)))
+  P4: The curriculum has practical exercises.
+      → ∀x ∃y (Curriculum(x) ∧ Exercise(y) ∧ Includes(x, y) → HasPractical(x, y))
+  P5: The curriculum provides access to advanced resources.
+      → ∀x (Curriculum(x) → ProvidesAccessToAdvancedResources(x))
+  option 'It enhances student engagement but not critical thinking':
+      → ∀x (Resource(x) ∧ EnhancesStudentEngagement(x) → ¬EnhancesCriticalThinking(x))
+  option 'It enhances critical thinking':
+      → ∀x ∃y (Person(x) ∧ Student(y) → EnhancesCriticalThinking(x, y))
+  option 'It needs more resources to enhance critical thinking':
+      → ∀x (CriticalThinking(x) → NeedsMoreResources(x))
+  option 'It is well-structured but lacks exercises':
+      → ∀x (Book(x) → (WellStructured(x) ∧ ¬HasExercises(x)))
+-- PHASE B: predicate grouping --
+  merged 8 name(s):
+      Book  →  HasExercises
+      CriticalThinking  →  EnhancesCriticalThinking
+      Exercise  →  HasExercises
+      Person  →  Faculty
+      PrioritizesCurriculumDevelopment  →  Curriculum
+      Resource  →  ProvidesAccessToAdvancedResources
+      WellStructured  →  Curriculum
+      WellStructuredCurriculum  →  Curriculum
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 4
+  predicted: 'Unknown'  (confidence 0.95, via symbolic)
+  gold:      'It enhances critical thinking'   [WRONG]
+  why: Symbolic derivation from the given premises yields Unknown.
+
+### [16/20] 1-2-3-4-5-6-1-2-3-4-5-6_q1   [YNU]
+Q: Does the combination of faculty priorities and curriculum features lead to enhanced critical thinking, according to the…
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: If a curriculum is well-structured and has exercises, it enhances student engag…
+      → ∀x (Curriculum(x) ∧ WellStructured(x) ∧ HasExercises(x) → EnhancesStudentEngagement(x))
+  P1: If a curriculum enhances student engagement and provides access to advanced res…
+      → ∀x (Curriculum(x) ∧ EnhancesStudentEngagement(x) ∧ ProvidesAccessToAdvancedResources(x) → EnhancesCriticalThinking(x))
+  P2: If a faculty prioritizes pedagogical training and curriculum development, the c…
+      → ∀x (Faculty(x) ∧ PrioritizesPedagogicalTraining(x) ∧ PrioritizesCurriculumDevelopment(x) → WellStructuredCurriculum(x))
+  P3: The faculty prioritizes pedagogical training and curriculum development.
+      → ∀x (Faculty(x) → (PrioritizesPedagogicalTraining(x) ∧ PrioritizesCurriculumDevelopment(x)))
+  P4: The curriculum has practical exercises.
+      → ∀x ∃y (Curriculum(x) ∧ Exercise(y) ∧ Includes(x, y) → HasPractical(x, y))
+  P5: The curriculum provides access to advanced resources.
+      → ∀x (Curriculum(x) → ProvidesAccessToAdvancedResources(x))
+  goal:
+      → ∀x (FacultyPriorities(x) ∧ CurriculumFeatures(x) → EnhancedCriticalThinking(x))
+-- PHASE B: predicate grouping --
+  merged 5 name(s):
+      CurriculumFeatures  →  Curriculum
+      EnhancesCriticalThinking  →  EnhancedCriticalThinking
+      FacultyPriorities  →  Faculty
+      HasExercises  →  Exercise
+      WellStructuredCurriculum  →  WellStructured
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 1
+  predicted: 'Uncertain'  (confidence 0.95, via symbolic)
+  gold:      'Yes'   [WRONG]
+  why: Symbolic derivation from the given premises yields Uncertain.
+  Z3 program (winning):
+      Universe = DeclareSort('Universe')
+      Curriculum = Function('Curriculum', Universe, BoolSort())
+      EnhancedCriticalThinking = Function('EnhancedCriticalThinking', Universe, BoolSort())
+      EnhancesStudentEngagement = Function('EnhancesStudentEngagement', Universe, BoolSort())
+      Exercise = Function('Exercise', Universe, BoolSort())
+      Faculty = Function('Faculty', Universe, BoolSort())
+      HasPractical = Function('HasPractical', Universe, Universe, BoolSort())
+      Includes = Function('Includes', Universe, Universe, BoolSort())
+      PrioritizesCurriculumDevelopment = Function('PrioritizesCurriculumDevelopment', Universe, BoolSort())
+      PrioritizesPedagogicalTraining = Function('PrioritizesPedagogicalTraining', Universe, BoolSort())
+      ProvidesAccessToAdvancedResources = Function('ProvidesAccessToAdvancedResources', Universe, BoolSort())
+      WellStructured = Function('WellStructured', Universe, BoolSort())
+      x = Const('x', Universe)
+      y = Const('y', Universe)
+      premises = [
+          ForAll([x], Implies(And(And(Curriculum(x), WellStructured(x)), Exercise(x)), EnhancesStudentEngagement(x))),
+          ForAll([x], Implies(And(And(Curriculum(x), EnhancesStudentEngagement(x)), ProvidesAccessToAdvancedResources(x)), EnhancedCriticalThinking(x))),
+          ForAll([x], Implies(And(And(Faculty(x), PrioritizesPedagogicalTraining(x)), PrioritizesCurriculumDevelopment(x)), WellStructured(x))),
+          ForAll([x], Implies(Faculty(x), And(PrioritizesPedagogicalTraining(x), PrioritizesCurriculumDevelopment(x)))),
+          ForAll([x], Exists([y], Implies(And(And(Curriculum(x), Exercise(y)), Includes(x, y)), HasPractical(x, y)))),
+          ForAll([x], Implies(Curriculum(x), ProvidesAccessToAdvancedResources(x)))
+      ]
+      goal = ForAll([x], Implies(And(Faculty(x), Curriculum(x)), EnhancedCriticalThinking(x)))
+
+### [17/20] 1-2-3-4-5-6-1-2-3-4-5-6_q0   [MCQ]
+Q: Based on the premises, what can we conclude about the curriculum?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: If a curriculum is well-structured and has exercises, it enhances student engag…
+      → ∀x (Curriculum(x) ∧ WellStructured(x) ∧ HasExercises(x) → EnhancesStudentEngagement(x))
+  P1: If a curriculum enhances student engagement and provides access to advanced res…
+      → ∀x (Curriculum(x) ∧ EnhancesStudentEngagement(x) ∧ ProvidesAccessToAdvancedResources(x) → EnhancesCriticalThinking(x))
+  P2: If a faculty prioritizes pedagogical training and curriculum development, the c…
+      → ∀x (Faculty(x) ∧ PrioritizesPedagogicalTraining(x) ∧ PrioritizesCurriculumDevelopment(x) → WellStructuredCurriculum(x))
+  P3: The faculty prioritizes pedagogical training and curriculum development.
+      → ∀x (Faculty(x) → (PrioritizesPedagogicalTraining(x) ∧ PrioritizesCurriculumDevelopment(x)))
+  P4: The curriculum has practical exercises.
+      → ∀x ∃y (Curriculum(x) ∧ Exercise(y) ∧ Includes(x, y) → HasPractical(x, y))
+  P5: The curriculum provides access to advanced resources.
+      → ∀x (Curriculum(x) → ProvidesAccessToAdvancedResources(x))
+  option 'It enhances student engagement but not critical thinking':
+      → ∀x (Resource(x) ∧ EnhancesStudentEngagement(x) → ¬EnhancesCriticalThinking(x))
+  option 'It enhances critical thinking':
+      → ∀x ∃y (Person(x) ∧ Student(y) → EnhancesCriticalThinking(x, y))
+  option 'It needs more resources to enhance critical thinking':
+      → ∀x (CriticalThinking(x) → NeedsMoreResources(x))
+  option 'It is well-structured but lacks exercises':
+      → ∀x (Book(x) → (WellStructured(x) ∧ ¬HasExercises(x)))
+-- PHASE B: predicate grouping --
+  merged 8 name(s):
+      Book  →  HasExercises
+      CriticalThinking  →  EnhancesCriticalThinking
+      Exercise  →  HasExercises
+      Person  →  Faculty
+      PrioritizesCurriculumDevelopment  →  Curriculum
+      Resource  →  ProvidesAccessToAdvancedResources
+      WellStructured  →  Curriculum
+      WellStructuredCurriculum  →  Curriculum
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 4
+  predicted: 'Unknown'  (confidence 0.95, via symbolic)
+  gold:      'It enhances critical thinking'   [WRONG]
+  why: Symbolic derivation from the given premises yields Unknown.
+
+### [18/20] 1-2-3-4-5-6-1-2-3-4-5-6_q1   [YNU]
+Q: Does the combination of faculty priorities and curriculum features lead to enhanced critical thinking, according to the…
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: If a curriculum is well-structured and has exercises, it enhances student engag…
+      → ∀x (Curriculum(x) ∧ WellStructured(x) ∧ HasExercises(x) → EnhancesStudentEngagement(x))
+  P1: If a curriculum enhances student engagement and provides access to advanced res…
+      → ∀x (Curriculum(x) ∧ EnhancesStudentEngagement(x) ∧ ProvidesAccessToAdvancedResources(x) → EnhancesCriticalThinking(x))
+  P2: If a faculty prioritizes pedagogical training and curriculum development, the c…
+      → ∀x (Faculty(x) ∧ PrioritizesPedagogicalTraining(x) ∧ PrioritizesCurriculumDevelopment(x) → WellStructuredCurriculum(x))
+  P3: The faculty prioritizes pedagogical training and curriculum development.
+      → ∀x (Faculty(x) → (PrioritizesPedagogicalTraining(x) ∧ PrioritizesCurriculumDevelopment(x)))
+  P4: The curriculum has practical exercises.
+      → ∀x ∃y (Curriculum(x) ∧ Exercise(y) ∧ Includes(x, y) → HasPractical(x, y))
+  P5: The curriculum provides access to advanced resources.
+      → ∀x (Curriculum(x) → ProvidesAccessToAdvancedResources(x))
+  goal:
+      → ∀x (FacultyPriorities(x) ∧ CurriculumFeatures(x) → EnhancedCriticalThinking(x))
+-- PHASE B: predicate grouping --
+  merged 5 name(s):
+      CurriculumFeatures  →  Curriculum
+      EnhancesCriticalThinking  →  EnhancedCriticalThinking
+      FacultyPriorities  →  Faculty
+      HasExercises  →  Exercise
+      WellStructuredCurriculum  →  WellStructured
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 1
+  predicted: 'Uncertain'  (confidence 0.95, via symbolic)
+  gold:      'Yes'   [WRONG]
+  why: Symbolic derivation from the given premises yields Uncertain.
+  Z3 program (winning):
+      Universe = DeclareSort('Universe')
+      Curriculum = Function('Curriculum', Universe, BoolSort())
+      EnhancedCriticalThinking = Function('EnhancedCriticalThinking', Universe, BoolSort())
+      EnhancesStudentEngagement = Function('EnhancesStudentEngagement', Universe, BoolSort())
+      Exercise = Function('Exercise', Universe, BoolSort())
+      Faculty = Function('Faculty', Universe, BoolSort())
+      HasPractical = Function('HasPractical', Universe, Universe, BoolSort())
+      Includes = Function('Includes', Universe, Universe, BoolSort())
+      PrioritizesCurriculumDevelopment = Function('PrioritizesCurriculumDevelopment', Universe, BoolSort())
+      PrioritizesPedagogicalTraining = Function('PrioritizesPedagogicalTraining', Universe, BoolSort())
+      ProvidesAccessToAdvancedResources = Function('ProvidesAccessToAdvancedResources', Universe, BoolSort())
+      WellStructured = Function('WellStructured', Universe, BoolSort())
+      x = Const('x', Universe)
+      y = Const('y', Universe)
+      premises = [
+          ForAll([x], Implies(And(And(Curriculum(x), WellStructured(x)), Exercise(x)), EnhancesStudentEngagement(x))),
+          ForAll([x], Implies(And(And(Curriculum(x), EnhancesStudentEngagement(x)), ProvidesAccessToAdvancedResources(x)), EnhancedCriticalThinking(x))),
+          ForAll([x], Implies(And(And(Faculty(x), PrioritizesPedagogicalTraining(x)), PrioritizesCurriculumDevelopment(x)), WellStructured(x))),
+          ForAll([x], Implies(Faculty(x), And(PrioritizesPedagogicalTraining(x), PrioritizesCurriculumDevelopment(x)))),
+          ForAll([x], Exists([y], Implies(And(And(Curriculum(x), Exercise(y)), Includes(x, y)), HasPractical(x, y)))),
+          ForAll([x], Implies(Curriculum(x), ProvidesAccessToAdvancedResources(x)))
+      ]
+      goal = ForAll([x], Implies(And(Faculty(x), Curriculum(x)), EnhancedCriticalThinking(x)))
+
+### [19/20] 2-3-5-2-3-5_q0   [MCQ]
+Q: Based on the prerequisites, what is David’s current eligibility status?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: If a student completes Course A, they can enroll in Course B.
+      → ∀x (Student(x) ∧ CompletesCourseA(x) → CanEnrollInCourseB(x))
+  P1: If a student enrolls in Course B and passes it, they can enroll in Course C.
+      → ∀x∀y (Student(x) ∧ Course(y) ∧ EnrollsIn(x, y) ∧ Passes(x, y) → CanEnrollIn(x, C))
+  P2: Enrollment in Course C makes a student eligible for the internship program.
+      → ∀x (Student(x) ∧ EnrolledInCourseC(x) → EligibleForInternshipProgram(x))
+  P3: David has completed Course A.
+      → Completed(Course, david, a)
+  P4: David has enrolled in and passed Course B.
+      → EnrolledIn(David, CourseB) ∧ Passed(David, CourseB)
+  option 'Eligible for Course C but not the internship':
+      → ∃x (Student(x) ∧ EligibleForCourse(x, C) ∧ ¬EligibleForInternship(x))
+  option 'Eligible for the internship program':
+      → ∃x (Student(x) ∧ GoodGrades(x) ∧ ActiveInClubs(x) → EligibleForInternship(x))
+  option 'Needs to pass Course B first':
+      → ∀x (Needs(x) → ∃y (Course(y) ∧ Pass(x, y) ∧ First(y))
+  option 'Only eligible for Course B':
+      → ∀x (Student(x) ∧ EligibleForCourseB(x) → EligibleStudent(x))
+-- PHASE B: predicate grouping --
+  merged 3 name(s):
+      CanEnrollInCourseB  →  EnrolledInCourseC
+      EligibleForInternshipProgram  →  EligibleForInternship
+      Passes  →  Passed
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 4
+  predicted: 'Unknown'  (confidence 0.95, via symbolic)
+  gold:      'Eligible for the internship program'   [WRONG]
+  why: Symbolic derivation from the given premises yields Unknown.
+
+### [20/20] 2-3-5-2-3-5_q1   [YNU]
+Q: Does the logical progression demonstrate that David meets all requirements for the internship?
+-- PHASE A: Llama+adapter  NL → FOL --
+  P0: If a student completes Course A, they can enroll in Course B.
+      → ∀x (Student(x) ∧ CompletesCourseA(x) → CanEnrollInCourseB(x))
+  P1: If a student enrolls in Course B and passes it, they can enroll in Course C.
+      → ∀x∀y (Student(x) ∧ Course(y) ∧ EnrollsIn(x, y) ∧ Passes(x, y) → CanEnrollIn(x, C))
+  P2: Enrollment in Course C makes a student eligible for the internship program.
+      → ∀x (Student(x) ∧ EnrolledInCourseC(x) → EligibleForInternshipProgram(x))
+  P3: David has completed Course A.
+      → Completed(Course, david, a)
+  P4: David has enrolled in and passed Course B.
+      → EnrolledIn(David, CourseB) ∧ Passed(David, CourseB)
+  goal:
+      → MeetRequirements(David, Internship)
+-- PHASE B: predicate grouping --
+  merged 3 name(s):
+      CanEnrollIn  →  EnrollsIn
+      EnrolledIn  →  EnrollsIn
+      Passes  →  Passed
+-- PHASE C: canonicalize + solve --
+  assembled Z3 programs: 1
+  predicted: 'Uncertain'  (confidence 0.95, via symbolic)
+  gold:      'Yes'   [WRONG]
+  why: Symbolic derivation from the given premises yields Uncertain.
+  Z3 program (winning):
+      Universe = DeclareSort('Universe')
+      CanEnrollInCourseB = Function('CanEnrollInCourseB', Universe, BoolSort())
+      Completed = Function('Completed', Universe, Universe, Universe, BoolSort())
+      CompletesCourseA = Function('CompletesCourseA', Universe, BoolSort())
+      EligibleForInternshipProgram = Function('EligibleForInternshipProgram', Universe, BoolSort())
+      EnrolledInCourseC = Function('EnrolledInCourseC', Universe, BoolSort())
+      EnrollsIn = Function('EnrollsIn', Universe, Universe, BoolSort())
+      MeetRequirements = Function('MeetRequirements', Universe, BoolSort())
+      Passed = Function('Passed', Universe, Universe, BoolSort())
+      Student = Function('Student', Universe, BoolSort())
+      Course = Const('Course', Universe)
+      CourseB = Const('CourseB', Universe)
+      David = Const('David', Universe)
+      a = Const('a', Universe)
+      david = Const('david', Universe)
+      x = Const('x', Universe)
+      premises = [
+          ForAll([x], Implies(And(Student(x), CompletesCourseA(x)), CanEnrollInCourseB(x))),
+          ForAll([x], Implies(And(Student(x), EnrolledInCourseC(x)), EligibleForInternshipProgram(x))),
+          Completed(Course, david, a),
+          And(EnrollsIn(David, CourseB), Passed(David, CourseB))
+      ]
+      goal = MeetRequirements(David)

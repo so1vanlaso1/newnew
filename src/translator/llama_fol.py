@@ -42,7 +42,12 @@ from typing import Iterable, Protocol
 
 from data.types import AnswerType, Record, Translation
 from translator.fol_converter import convert_premises_to_z3py
-from translator.fol_repair import add_type_facts, ground_goal
+from translator.fol_repair import (
+    add_type_facts,
+    apply_renames,
+    canonicalize_constants,
+    ground_goal,
+)
 
 log = logging.getLogger(__name__)
 
@@ -162,6 +167,9 @@ class LlamaFolConfig:
     ground_goals: bool = True
     assert_type_facts: bool = True
     type_guard_min_rules: int = 2
+    # Bolt-on E (translator.schema_fol): reshape facts/goals onto the rules'
+    # predicate vocabulary so the symbolic chain can connect.
+    schema_conditioned: bool = True
 
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -249,6 +257,15 @@ def assemble_z3_program(
     if not norm_premises:
         return None, None
     norm_goal = normalize_fol(goal_fol) if goal_fol and goal_fol.strip() else None
+
+    # Bolt-on C: unify case-variant entity constants (`John`/`john`) so the chain
+    # about one person isn't split across two Z3 individuals. Done before A/B so
+    # goal grounding and sort-guard assertion see a single canonical entity.
+    const_map = canonicalize_constants(norm_premises + ([norm_goal] if norm_goal else []))
+    if const_map:
+        norm_premises = [apply_renames(p, const_map) for p in norm_premises]
+        if norm_goal:
+            norm_goal = apply_renames(norm_goal, const_map)
 
     # Bolt-on A: re-ground the goal first (uses the premises to find the entity
     # and the predicate's true arity).
@@ -596,10 +613,12 @@ class LlamaFolTranslator:
     def translate_to_fol(self, record: Record) -> RecordFol:
         """Run the model to produce raw FOL only — no Z3 assembly. Phase A of the
         runner stores these before the grouping phase."""
+        goals_nl: list[str] = []
         if record.answer_type == AnswerType.YES_NO_UNCERTAIN:
             premises_fol = self._translate_many(record.premises_nl)
             goal_candidates = self._translate_one(record.question_nl)
             rfol = RecordFol(record.answer_type, premises_fol, [("__goal__", goal_candidates)])
+            goals_nl = [record.question_nl]
         elif record.answer_type == AnswerType.MCQ and record.options:
             premises_fol = self._translate_many(record.premises_nl)
             goals: list[tuple[str, list[str]]] = []
@@ -608,10 +627,22 @@ class LlamaFolTranslator:
             for opt in record.options:
                 claim = opt.strip().rstrip(".").strip()
                 goals.append((opt, self._translate_one(claim)))
+                goals_nl.append(claim)
             rfol = RecordFol(record.answer_type, premises_fol, goals)
         else:
             rfol = RecordFol(record.answer_type, [], [])
+        # Dump the RAW model output before any deterministic reshape.
         self._dump_rfol(record, rfol)
+        # Bolt-on E: snap off-vocabulary facts/goals onto the rules' predicate
+        # registry so the chain can connect. Pure/deterministic — no extra model.
+        if self.cfg.schema_conditioned and rfol.premises_fol:
+            from translator.schema_fol import schema_condition
+
+            new_prem, new_goals = schema_condition(
+                rfol.answer_type, rfol.premises_fol, list(record.premises_nl),
+                rfol.goals, goals_nl,
+            )
+            rfol = RecordFol(rfol.answer_type, new_prem, new_goals)
         return rfol
 
     def _dump(self, payload: dict) -> None:

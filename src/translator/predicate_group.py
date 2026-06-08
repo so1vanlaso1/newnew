@@ -23,7 +23,7 @@ from collections import Counter
 from typing import Callable, Iterable
 
 from translator.fol_converter import FolParseError, collect_signature, parse
-from translator.fol_repair import entity_names, predicate_arities
+from translator.fol_repair import entity_names, free_sort_guards, predicate_arities
 
 # A chat function: takes chat `messages`, returns the model's raw completion text.
 ChatFn = Callable[[list[dict]], str]
@@ -265,10 +265,10 @@ def _object_tokens(name: str) -> set[str]:
     return {t.lower() for t in toks[1:] if t.lower() not in _OBJECT_STOPWORDS}
 
 
-def _shared_object(a: str, b: str) -> bool:
+def _shared_object(a: str, b: str, types: frozenset[str] = frozenset()) -> bool:
     """Whether two predicate names refer to the same underlying object/requirement.
 
-    True when their object-token sets overlap (genuine synonyms like
+    True when their object-token sets overlap enough (genuine synonyms like
     `EligibleForScholarship` ≈ `QualifyForUniversityScholarship`, both about
     *scholarship*), OR when the names are near-identical strings (morphological
     twins). False when the objects are disjoint — that is the over-merge the LLM
@@ -276,14 +276,30 @@ def _shared_object(a: str, b: str) -> bool:
     `ReceivedSafetyEndorsement` vs `CompletedHazmatTraining`), which fuses distinct
     requirements and corrupts the reasoning chain.
 
-    When either name has no comparable object part (a single-token predicate) we do
-    not block — there is nothing to contradict, so the other guards decide."""
+    Two extra guards close holes the run review exposed:
+      * `types` lists the record's pure sort/type predicates (`Driver`, `Student`).
+        A type and a non-type are NEVER fused — that is the `HasLicense → Driver`
+        catastrophe, where a possession was merged into the sort that gates every
+        rule. Two types still merge (`Person` ≈ `Student`); two non-types still
+        merge on object overlap.
+      * A single *incidental* shared token (`research` between
+        `CanApplyForCollaborativeResearchProjects` and `CanSubmitResearchProposals`,
+        two different chain stages) no longer suffices: the overlap must cover at
+        least half the smaller object set.
+
+    When either name has no comparable object part (a single-token predicate) and
+    the type guard hasn't already blocked, we don't block — the other guards decide."""
     if _similar(a, b):
         return True
+    if (a in types) != (b in types):
+        return False
     oa, ob = _object_tokens(a), _object_tokens(b)
     if not oa or not ob:
         return True
-    return bool(oa & ob)
+    shared = oa & ob
+    if not shared:
+        return False
+    return len(shared) * 2 >= min(len(oa), len(ob))
 
 
 def _majority_arity_members(members: list[str], arities: dict[str, int]) -> list[str]:
@@ -324,6 +340,8 @@ def safe_canonical_map(
         return {}
     ents = {e.lower() for e in entity_names(fol_strings)}
     arities = predicate_arities(fol_strings)
+    # Pure sort/type predicates (Student, Driver) — never fused with a non-type.
+    types = frozenset(free_sort_guards(fol_strings))
     cand = [n for n in sorted(counts) if n.lower() not in ents]
     if len(cand) < 2:
         return {}
@@ -353,7 +371,7 @@ def safe_canonical_map(
         # so the result is independent of the cluster's listing order.
         for i in range(len(members)):
             for j in range(i + 1, len(members)):
-                if _shared_object(members[i], members[j]):
+                if _shared_object(members[i], members[j], types):
                     union(members[i], members[j])
 
     # (2) deterministic near-identity (same arity, same polarity)

@@ -43,6 +43,7 @@ parser/AST, so the symbolic reading is exact — no string heuristics on the FOL
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 
 from translator.fol_converter import (
@@ -288,6 +289,68 @@ def predicate_arities(fol_strings) -> dict[str, int]:
     alignment only ever merges same-arity predicates."""
     nodes = [n for n in (_parse_or_none(s) for s in fol_strings) if n is not None]
     return _pred_arities(nodes)
+
+
+def apply_renames(fol: str, mapping: dict[str, str]) -> str:
+    """Rewrite whole-word identifiers in `fol` per `mapping`, in a single pass.
+    Used to apply a constant-canonicalization map; identifier `\\b` boundaries are
+    safe because both keys and values are bare symbols."""
+    if not mapping:
+        return fol
+    alternation = "|".join(re.escape(k) for k in sorted(mapping, key=len, reverse=True))
+    pattern = re.compile(r"\b(" + alternation + r")\b")
+    return pattern.sub(lambda m: mapping[m.group(0)], fol)
+
+
+def canonicalize_constants(fol_strings) -> dict[str, str]:
+    """Map case-variant spellings of the SAME entity constant onto one symbol.
+
+    The per-sentence translator splits a protagonist across spellings — ``John`` in
+    one premise, ``john`` in another (and ``David``/``david``). Z3 then treats them
+    as two distinct individuals, so no chain about that person ever closes. We group
+    argument-position symbols by casefold and, for any group with more than one
+    spelling, map every spelling to a single canonical one (most frequent, then the
+    lowercase form, then lexicographic). Predicate names are never touched — only
+    symbols that appear in term/argument position.
+
+    Returns ``{variant: canonical}`` for the spellings that need rewriting (the
+    canonical spelling itself is omitted), or ``{}`` when no entity has a
+    case-variant twin."""
+    nodes = [n for n in (_parse_or_none(s) for s in fol_strings) if n is not None]
+    counts: Counter = Counter()
+    for n in nodes:
+        names: set[str] = set()
+        _arg_names(n, set(), names)
+        for nm in names:
+            counts[nm] += 1
+    groups: dict[str, list[str]] = {}
+    for name in counts:
+        groups.setdefault(name.casefold(), []).append(name)
+    mapping: dict[str, str] = {}
+    for variants in groups.values():
+        if len(variants) < 2:
+            continue
+        # Prefer the most-frequent spelling; break ties toward the lowercase form
+        # (the convention well-formed ground facts use), then lexicographically.
+        canonical = sorted(
+            variants, key=lambda n: (-counts[n], 0 if n.islower() else 1, n)
+        )[0]
+        for v in variants:
+            if v != canonical:
+                mapping[v] = canonical
+    return mapping
+
+
+def free_sort_guards(fol_strings, min_rules: int = 2, coverage: float = 1.0) -> set[str]:
+    """Public wrapper: the record's pure sort-guard predicates (``Student``,
+    ``Person``, ``Driver``) — unary predicates that gate ≥ coverage×(#rules) rules
+    yet are never a rule head, a ground fact, or a junk filler. Used by
+    predicate_group (bolt-on D) to refuse merging a type predicate with a
+    capability/possession predicate."""
+    valid = [n for n in (_parse_or_none(s) for s in fol_strings) if n is not None]
+    if not valid:
+        return set()
+    return _free_sort_guards(valid, min_rules=min_rules, coverage=coverage)
 
 
 # ─────────────────────────────────────────────────────────────────────────

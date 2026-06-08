@@ -110,6 +110,7 @@ def _build_config(args: argparse.Namespace):
         ground_goals=not args.no_ground_goals,
         assert_type_facts=not args.no_type_facts,
         type_guard_min_rules=args.type_guard_min_rules,
+        schema_conditioned=not args.no_schema_cond,
     )
 
 
@@ -234,7 +235,9 @@ def write_run_summary(
     lines.append(f"precision={args.precision}  k={args.k}  beams={args.num_beams}")
     grouping = "off (--no-group)" if args.no_group else "on (Llama base chat)"
     cot = "off (--no-cot)" if args.no_cot else "on (Llama base chat)"
+    schema = "off (--no-schema-cond)" if args.no_schema_cond else "on (registry reshape)"
     lines.append(f"grouping={grouping}   cot_fallback={cot}")
+    lines.append(f"schema_conditioning={schema}")
     acc = f"{n_correct}/{n_scored} = {n_correct / n_scored:.1%}" if n_scored else "n/a (no --show-gold)"
     lines.append(f"records={len(gated)}   accuracy={acc}   elapsed={elapsed_s:.1f}s")
     lines.append("=" * 78)
@@ -446,6 +449,9 @@ def main() -> None:
                     help="disable bolt-on A (goal re-grounding); ablation")
     ap.add_argument("--no-type-facts", action="store_true",
                     help="disable bolt-on B (free sort-guard assertion); ablation")
+    ap.add_argument("--no-schema-cond", action="store_true",
+                    help="disable bolt-on E (schema-conditioned fact/goal reshape "
+                         "onto the rules' predicate registry); ablation")
     ap.add_argument("--type-guard-min-rules", type=int, default=2,
                     help="min #rules before bolt-on B's sort-guard heuristic fires")
     ap.add_argument("--no-deterministic-align", action="store_true",
